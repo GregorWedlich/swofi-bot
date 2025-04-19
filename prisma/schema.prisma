@@ -1,0 +1,78 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+// prisma/schema.prisma
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-arm64-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Event {
+  id              String       @id @default(uuid())
+  title           String
+  description     String       @db.Text
+  entryDate       DateTime
+  date            DateTime
+  endDate         DateTime
+  category        String[]
+  links           String[]
+  groupLink       String? 
+  imageBase64     String?
+  submittedById   BigInt
+  submittedBy     String
+  location        String
+  status          EventStatus  @default(PENDING)
+  rejectionReason String?
+  messageId       BigInt?
+  updatedCount    Int          @default(0)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+       // Neues optionales Feld für den Gruppenlink
+
+  @@index([date])
+  @@index([title])
+  @@index([category])
+}
+
+model EventArchive {
+  id              String       @id
+  title           String
+  description     String       @db.Text
+  entryDate       DateTime
+  date            DateTime
+  endDate         DateTime
+  category        String[]
+  links           String[]
+  groupLink       String? 
+  imageBase64     String?
+  submittedById   BigInt
+  submittedBy     String
+  location        String
+  status          EventStatus  @default(PENDING)
+  rejectionReason String?
+  messageId       BigInt?
+  updatedCount    Int          @default(0)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime
+
+  @@index([date])
+  @@index([title])
+  @@index([category])
+}
+
+enum EventStatus {
+  PENDING
+  APPROVED
+  EDITED_PENDING
+  EDITED_APPROVED
+  REJECTED
+}
