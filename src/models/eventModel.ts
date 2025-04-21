@@ -1,5 +1,5 @@
 import { Prisma } from '@prisma/client';
-import { startOfDay, endOfDay } from 'date-fns';
+import { startOfDay, endOfDay, isSameDay } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 
 import { prisma } from '../prisma';
@@ -67,38 +67,55 @@ export const updateEvent = async (
 /**
  * Finds all events for a specific day that are approved.
  * Considers both 'APPROVED' and 'EDITED_APPROVED' statuses.
+ * If currentTime is provided and searchDate is today, filters out events that have already ended.
  */
-export const findEventsForDay = async (searchDate: Date) => {
+export const findEventsForDay = async (
+  searchDate: Date,
+  currentTime?: Date,
+) => {
   const timezone = getTimezone();
 
-  const zonedDate = toZonedTime(searchDate, timezone);
+  const zonedSearchDate = toZonedTime(searchDate, timezone);
 
-  const startOfDayInTimeZone = startOfDay(zonedDate);
-  const endOfDayInTimeZone = endOfDay(zonedDate);
+  const startOfDayInTimeZone = startOfDay(zonedSearchDate);
+  const endOfDayInTimeZone = endOfDay(zonedSearchDate);
 
   const startOfDayUTC = fromZonedTime(startOfDayInTimeZone, timezone);
   const endOfDayUTC = fromZonedTime(endOfDayInTimeZone, timezone);
 
+  const whereClause: Prisma.EventWhereInput = {
+    AND: [
+      {
+        date: {
+          lte: endOfDayUTC,
+        },
+      },
+      {
+        endDate: {
+          gte: startOfDayUTC,
+        },
+      },
+      {
+        status: {
+          in: ['APPROVED', 'EDITED_APPROVED'],
+        },
+      },
+    ],
+  };
+
+  if (currentTime) {
+    const zonedCurrentTime = toZonedTime(currentTime, timezone);
+    if (isSameDay(zonedSearchDate, zonedCurrentTime)) {
+      (whereClause.AND as Prisma.EventWhereInput[]).push({
+        endDate: {
+          gt: currentTime,
+        },
+      });
+    }
+  }
+
   return prisma.event.findMany({
-    where: {
-      AND: [
-        {
-          date: {
-            lte: endOfDayUTC,
-          },
-        },
-        {
-          endDate: {
-            gte: startOfDayUTC,
-          },
-        },
-        {
-          status: {
-            in: ['APPROVED', 'EDITED_APPROVED'],
-          },
-        },
-      ],
-    },
+    where: whereClause,
     orderBy: {
       date: 'asc',
     },
