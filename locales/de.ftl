@@ -221,7 +221,7 @@ msg-service-event-approval-error = Fehler bei der Genehmigung der Veranstaltung\
 msg-service-event-rejection-error = Fehler beim Ablehnen der Veranstaltung\.
 msg-service-event-rejection-entered = Eingetreten in rejectEventConversation für Veranstaltung ID=\{ $eventId \}\.
 msg-service-event-publication-error = Fehler beim Veröffentlichen der Veranstaltung\.
-msg-service-event-published = { $icon } Die Veranstaltung \"\{ $eventTitle \}\" wurde erfolgreich im Kanal \{ $channelUsername \} veröffentlicht\!
+msg-service-event-published = { $icon } Die Veranstaltung "{ $eventTitle }" wurde erfolgreich im Kanal { $channelUsername } veröffentlicht\!
 msg-service-event-update-error = Fehler beim Aktualisieren der Veranstaltung im Kanal\.
 msg-service-event-post-error = Fehler beim Posten der Veranstaltung im Kanal\.
 msg-service-event-post-success = Veranstaltung erfolgreich im Kanal veröffentlicht\.
@@ -232,8 +232,6 @@ msg-service-event-text-send-error = Fehler beim Senden der Nachricht für die Ve
 msg-service-event-photo-post-success = Foto im Kanal gepostet für Veranstaltung ID=\{ $eventId \}\, messageId=\{ $messageId \}\.
 msg-service-event-text-post-success = Nachricht im Kanal gepostet für Veranstaltung ID=\{ $eventId \}\, messageId=\{ $messageId \}\.
 msg-service-event-text-edit-success = Nachricht im Kanal bearbeitet für Veranstaltung ID=\{ $eventId \}\, messageId=\{ $messageId \}\.
-msg-service-search-no-events = Keine Veranstaltungen für \{ $dateText \}\.
-msg-service-search-error = Fehler beim Senden der Suchergebnisse an den Benutzer\.
 msg-service-event-process-error = Fehler beim Verarbeiten der Veranstaltung ID=\{ $eventId \}\.
 msg-service-search-no-events = Keine Veranstaltungen für { $dateText }\.
 msg-service-search-error = { $icon } Fehler beim Senden der Suchergebnisse\.
