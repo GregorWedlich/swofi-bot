@@ -16,7 +16,7 @@ services:
       DATABASE_URL: 'postgresql://admin:<THE_STRONG_PW>@db:5432/swofi-telegram?schema=public'
       TELEGRAM_TOKEN: '<TELEGRAM_TOKEN>'
       ADMIN_CHAT_ID: '<ADMIN_GROUP_CHAT_ID>'
-      CHANNEL_USERNAME: '<CHANNEL_ID>'
+      CHANNEL_CHAT_ID: '<CHANNEL_ID>'
       MAX_CATEGORIES: '3'
       TIMEZONE: 'Europe/Berlin'
       DATE_FORMAT: 'dd.MM.yyyy HH:mm'
