@@ -1,7 +1,7 @@
 import { Conversation } from '@grammyjs/conversations';
 import { InlineKeyboard } from 'grammy';
-import { addDays, parse, isSameDay } from 'date-fns';
-import { toZonedTime } from 'date-fns-tz';
+import { addDays, parse } from 'date-fns';
+import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 
 import { findEventsForDay } from '../models/eventModel';
 import { sendSearchToUser } from '../services/eventService';
@@ -124,9 +124,8 @@ async function handleSearchChoice(
 
 async function handleTodaySearch(ctx: MyContext) {
   try {
-    const now = new Date();
-    const today = toZonedTime(now, getTimezone());
-    const events = await findEventsForDay(today, now);
+    const today = toZonedTime(new Date(), getTimezone());
+    const events = await findEventsForDay(today);
     await sendSearchToUser(
       events,
       ctx.t('msg-search-event-btn-today', { icon: ICONS.date }),
@@ -216,24 +215,13 @@ async function handleSpecificDateSearch(
       continue;
     }
 
-    searchDate = parsedDateInTimeZone;
+    searchDate = fromZonedTime(parsedDateInTimeZone, getTimezone());
 
     validDate = true;
   }
 
   if (searchDate !== null) {
-    const now = new Date();
-    const zonedSearchDate = toZonedTime(searchDate, getTimezone());
-    const currentTimeForSearch = isSameDay(
-      zonedSearchDate,
-      toZonedTime(now, getTimezone()),
-    )
-      ? now
-      : undefined;
-    const events = await findEventsForDay(
-      zonedSearchDate,
-      currentTimeForSearch,
-    );
+    const events = await findEventsForDay(searchDate);
     await sendSearchToUser(events, dateText, ctx.chat!.id.toString(), ctx);
     return;
   }

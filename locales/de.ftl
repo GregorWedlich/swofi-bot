@@ -264,4 +264,26 @@ msg-rules-notice = { $icon } **Wichtiger Hinweis:**\
     1\. Wir nehmen uns das Recht\, Veranstaltungen\, die nicht unseren Überzeugungen entsprechen\, zu löschen\.
     2\. Wir unterstützen keine Veranstaltungen mit sexistischen\, rassistischen oder allgemein diskriminierenden Inhalten\.
     3\. Unser Service ist unentgeltlich und wird ausschließlich von Freiwilligen betrieben\.
-    4\. Aus technischen Gründen speichern wir deine Telegram\-User\-Id\, wenn du Veranstaltungen einreichst\. Ansonsten werden keine weiteren Daten erfasst\. Alle Daten liegen auf den Servern von Telegram\, auf die wir keinen Einfluss haben\.
+    4\. Wer versucht, durch Löschen und Wiedereinstellen seiner Events einen Vorteil zu erlangen, wird gebannt.
+    5\. Aus technischen Gründen speichern wir deine Telegram\-User\-Id\, wenn du Veranstaltungen einreichst\. Ansonsten werden keine weiteren Daten erfasst\. Alle Daten liegen auf den Servern von Telegram\, auf die wir keinen Einfluss haben\.
+
+# --- Delete Event Command ---
+bot-entry-event-delete-command = Möchtest du eines deiner Events löschen?
+bot-entry-delete-cancelled = Löschvorgang abgebrochen\. { $icon }
+
+# --- Delete Event Conversation ---
+msg-delete-event-user-not-found = Benutzer-ID nicht gefunden\. Löschen nicht möglich\.
+msg-delete-event-no-approved-events-found = Du hast keine genehmigten Events, die du löschen könntest\.
+msg-delete-event-select-event = Wähle das Event aus, das du löschen möchtest:
+msg-delete-event-select-title = "{ $title }"
+msg-delete-event-btn-cancel = Abbrechen { $icon }
+msg-delete-event-cancelled = Löschvorgang abgebrochen\.
+msg-delete-event-not-found-error = Fehler: Ausgewähltes Event nicht gefunden\.
+msg-delete-event-selected-details = Du hast folgendes Event zum Löschen ausgewählt:
+msg-delete-event-confirm-prompt = Bist du sicher, dass du das Event "{ $eventTitle }" unwiderruflich löschen möchtest? Die Nachricht im Kanal wird ebenfalls entfernt\.
+msg-delete-event-btn-confirm = Ja, löschen { $icon }
+msg-delete-event-error = Ein Fehler ist beim Löschen des Events aufgetreten\. { $icon }
+
+# --- Event Service ---
+msg-service-event-deleted-success = { $icon } Das Event "{ $eventTitle }" wurde erfolgreich gelöscht\.
+msg-service-event-deletion-error = { $icon } Fehler beim Löschen des Events\. Bitte versuche es später erneut oder kontaktiere den Support\.

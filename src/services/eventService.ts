@@ -10,6 +10,7 @@ import {
   approveEditedEvent,
   findEventById,
   updateEvent,
+  deleteEventById,
 } from '../models/eventModel';
 import { MyContext } from '../types/context';
 import { ICONS } from '../utils/iconUtils';
@@ -202,6 +203,55 @@ export async function handleEventRejection(eventId: string, ctx: MyContext) {
       text: ctx.t('msg-service-event-rejection-error'),
       show_alert: true,
     });
+  }
+}
+
+export async function handleEventDeletion(eventId: string, ctx: MyContext) {
+  try {
+    const event = await findEventById(eventId);
+
+    if (!event) {
+      await ctx.replyWithMarkdownV2(ctx.t('msg-service-event-not-found'));
+      console.warn(`Event not found for deletion: ID=${eventId}`);
+      return false;
+    }
+
+    // Lösche die Nachricht im Kanal, falls vorhanden
+    if (event.messageId) {
+      try {
+        await bot.api.deleteMessage(
+          getChannelUsername(),
+          Number(event.messageId),
+        );
+        console.log(
+          `Message deleted from channel for Event ID=${eventId}, messageId=${event.messageId}`,
+        );
+      } catch (error) {
+        // Fehler beim Löschen der Nachricht ignorieren oder loggen, aber den Vorgang fortsetzen
+        console.error(
+          `Error deleting message from channel for Event ID=${eventId}, messageId=${event.messageId}:`,
+          error,
+        );
+      }
+    }
+
+    // Lösche das Event aus der Datenbank
+    await deleteEventById(eventId);
+    console.log(`Event deleted from database: ID=${eventId}`);
+
+    await ctx.replyWithMarkdownV2(
+      ctx.t('msg-service-event-deleted-success', {
+        icon: ICONS.approve,
+        eventTitle: escapeMarkdownV2Text(event.title),
+      }),
+    );
+    return true;
+  } catch (error) {
+    console.error(`Error deleting event ID=${eventId}:`, error);
+    await ctx.replyWithMarkdownV2(
+      ctx.t('msg-service-event-deletion-error', { icon: ICONS.reject }),
+    );
+    return false;
   }
 }
 

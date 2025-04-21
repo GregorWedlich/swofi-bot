@@ -23,6 +23,7 @@ import { submitEventConversation } from './conversations/submitEventConversation
 import { rejectEventConversation } from './conversations/rejectEventConversation';
 import { searchEventConversation } from './conversations/searchEventConversation';
 import { editEventConversation } from './conversations/editEventConversation';
+import { deleteEventConversation } from './conversations/deleteEventConversation';
 import { MyContext } from './types/context';
 import {
   handleEventApproval,
@@ -117,6 +118,7 @@ bot.use(createConversation(submitEventConversation, 'submitEventConversation'));
 bot.use(createConversation(rejectEventConversation, 'rejectEventConversation'));
 bot.use(createConversation(searchEventConversation, 'searchEventConversation'));
 bot.use(createConversation(editEventConversation, 'editEventConversation'));
+bot.use(createConversation(deleteEventConversation, 'deleteEventConversation'));
 
 // bot.command('language', async (ctx) => {
 //   await ctx.replyWithMarkdownV2(ctx.t('bot-entry-choose-language'), {
@@ -167,6 +169,14 @@ bot.command('edit', async (ctx) => {
     reply_markup: new InlineKeyboard()
       .text(ctx.t('bot-entry-yes', { icon: ICONS.approve }), 'edit_event')
       .text(ctx.t('bot-entry-no', { icon: ICONS.reject }), 'cancel_edit'),
+  });
+});
+
+bot.command('delete', async (ctx) => {
+  await ctx.replyWithMarkdownV2(ctx.t('bot-entry-event-delete-command'), {
+    reply_markup: new InlineKeyboard()
+      .text(ctx.t('bot-entry-yes', { icon: ICONS.approve }), 'start_delete')
+      .text(ctx.t('bot-entry-no', { icon: ICONS.reject }), 'cancel_delete'),
   });
 });
 
@@ -268,6 +278,18 @@ bot.callbackQuery('cancel_edit', async (ctx) => {
   await ctx.answerCallbackQuery();
   await ctx.replyWithMarkdownV2(
     ctx.t('bot-entry-edit-cancelled', { icon: ICONS.reject }),
+  );
+});
+
+bot.callbackQuery('start_delete', async (ctx) => {
+  await ctx.answerCallbackQuery();
+  await ctx.conversation.enter('deleteEventConversation');
+});
+
+bot.callbackQuery('cancel_delete', async (ctx) => {
+  await ctx.answerCallbackQuery();
+  await ctx.replyWithMarkdownV2(
+    ctx.t('bot-entry-delete-cancelled', { icon: ICONS.reject }),
   );
 });
 
