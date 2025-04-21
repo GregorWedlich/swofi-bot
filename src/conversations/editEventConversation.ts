@@ -394,6 +394,7 @@ async function collectEventDates(
       let parsedStartDate: Date | null = null;
       let parsedEndDate: Date | null = null;
 
+      // Eintragsdatum
       while (true) {
         await ctx.replyWithMarkdownV2(
           ctx.t('msg-edit-event-new-entry-date', {

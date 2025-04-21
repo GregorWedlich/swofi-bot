@@ -182,7 +182,6 @@ bot.command('support', async (ctx) => {
   let contactInfoAdded = false;
 
   if (supportEmail) {
-    // Fallback-Icon (Emoji)
     const emailIcon = ICONS.email || '📧';
     message +=
       '\n' +
@@ -194,7 +193,6 @@ bot.command('support', async (ctx) => {
   }
 
   if (supportTelegramUser) {
-    // Fallback-Icon (Emoji)
     const telegramIcon = ICONS.telegram || '➡️';
     message +=
       '\n' +

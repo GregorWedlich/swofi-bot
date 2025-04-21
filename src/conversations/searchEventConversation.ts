@@ -22,6 +22,7 @@ export async function searchEventConversation(
     if (!choice || choice === 'search_exit') return;
 
     await handleSearchChoice(conversation, ctx, choice);
+    // Nach der Ausgabe der Events die Suche beenden
   } catch (error) {
     console.error('Error searching for events:', error);
     await ctx.replyWithMarkdownV2(

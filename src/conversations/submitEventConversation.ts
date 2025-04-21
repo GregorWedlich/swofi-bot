@@ -838,7 +838,7 @@ async function collectEventGroupLink(
         );
       }
     } catch (error) {
-      console.error('Fehler beim Erfassen des Gruppenlinks:', error);
+      console.error('Error capturing the group link:', error);
       await ctx.replyWithMarkdownV2(
         ctx.t('msg-submit-event-group-link-error', { icon: ICONS.reject }),
       );
