@@ -1,6 +1,6 @@
 {
   "name": "swofi-bot",
-  "version": "0.9.0_beta",
+  "version": "0.9.1_beta",
   "description": "Swofi is a telegram bot to help organize your event channels.",
   "main": "src/index.ts",
   "license": "MIT",
