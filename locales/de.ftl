@@ -264,7 +264,7 @@ msg-rules-notice = { $icon } **Wichtiger Hinweis:**\
     1\. Wir nehmen uns das Recht\, Veranstaltungen\, die nicht unseren Überzeugungen entsprechen\, zu löschen\.
     2\. Wir unterstützen keine Veranstaltungen mit sexistischen\, rassistischen oder allgemein diskriminierenden Inhalten\.
     3\. Unser Service ist unentgeltlich und wird ausschließlich von Freiwilligen betrieben\.
-    4\. Wer versucht, durch Löschen und Wiedereinstellen seiner Events einen Vorteil zu erlangen, wird gebannt.
+    4\. Wer versucht, durch Löschen und Wiedereinstellen seiner Events einen Vorteil zu erlangen, wird gebannt\.
     5\. Aus technischen Gründen speichern wir deine Telegram\-User\-Id\, wenn du Veranstaltungen einreichst\. Ansonsten werden keine weiteren Daten erfasst\. Alle Daten liegen auf den Servern von Telegram\, auf die wir keinen Einfluss haben\.
 
 # --- Delete Event Command ---
