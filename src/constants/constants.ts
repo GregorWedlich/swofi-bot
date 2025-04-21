@@ -3,7 +3,7 @@ export function getAdminChatId(): string {
 }
 
 export function getChannelUsername(): string {
-  return process.env.CHANNEL_USERNAME || '';
+  return process.env.CHANNEL_CHAT_ID || '';
 }
 
 export function getTelegramToken(): string {
