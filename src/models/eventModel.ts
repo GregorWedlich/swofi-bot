@@ -1,5 +1,5 @@
 import { Prisma } from '@prisma/client';
-import { startOfDay, endOfDay, isSameDay } from 'date-fns';
+import { startOfDay, endOfDay } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 
 import { prisma } from '../prisma';
@@ -65,57 +65,58 @@ export const updateEvent = async (
 };
 
 /**
+ * Deletes an event by its ID.
+ */
+export const deleteEventById = async (eventId: string) => {
+  return await prisma.event.delete({
+    where: { id: eventId },
+  });
+};
+
+/**
  * Finds all events for a specific day that are approved.
  * Considers both 'APPROVED' and 'EDITED_APPROVED' statuses.
- * If currentTime is provided and searchDate is today, filters out events that have already ended.
+ * Shows events until 2 hours after their end time.
  */
-export const findEventsForDay = async (
-  searchDate: Date,
-  currentTime?: Date,
-) => {
+export const findEventsForDay = async (searchDate: Date) => {
   const timezone = getTimezone();
+  const currentTime = new Date();
+  const currentTimeMinus2Hours = new Date(
+    currentTime.getTime() - 2 * 60 * 60 * 1000,
+  );
+  const zonedDate = toZonedTime(searchDate, timezone);
 
-  const zonedSearchDate = toZonedTime(searchDate, timezone);
-
-  const startOfDayInTimeZone = startOfDay(zonedSearchDate);
-  const endOfDayInTimeZone = endOfDay(zonedSearchDate);
+  const startOfDayInTimeZone = startOfDay(zonedDate);
+  const endOfDayInTimeZone = endOfDay(zonedDate);
 
   const startOfDayUTC = fromZonedTime(startOfDayInTimeZone, timezone);
   const endOfDayUTC = fromZonedTime(endOfDayInTimeZone, timezone);
 
-  const whereClause: Prisma.EventWhereInput = {
-    AND: [
-      {
-        date: {
-          lte: endOfDayUTC,
-        },
-      },
-      {
-        endDate: {
-          gte: startOfDayUTC,
-        },
-      },
-      {
-        status: {
-          in: ['APPROVED', 'EDITED_APPROVED'],
-        },
-      },
-    ],
-  };
-
-  if (currentTime) {
-    const zonedCurrentTime = toZonedTime(currentTime, timezone);
-    if (isSameDay(zonedSearchDate, zonedCurrentTime)) {
-      (whereClause.AND as Prisma.EventWhereInput[]).push({
-        endDate: {
-          gt: currentTime,
-        },
-      });
-    }
-  }
-
   return prisma.event.findMany({
-    where: whereClause,
+    where: {
+      AND: [
+        {
+          date: {
+            lte: endOfDayUTC,
+          },
+        },
+        {
+          endDate: {
+            gte: startOfDayUTC,
+          },
+        },
+        {
+          endDate: {
+            gte: currentTimeMinus2Hours,
+          },
+        },
+        {
+          status: {
+            in: ['APPROVED', 'EDITED_APPROVED'],
+          },
+        },
+      ],
+    },
     orderBy: {
       date: 'asc',
     },

@@ -255,8 +255,30 @@ msg-search-event-btn-cancel = { $icon } Cancel
 msg-search-event-exit = { $icon } Search ended\.
 msg-search-event-cancel = { $icon } Search cancelled\.
 
-msg-rules-notice = { $icon } **Wichtiger Hinweis:**\  
-    1\. Wir nehmen uns das Recht\, Veranstaltungen\, die nicht unseren Überzeugungen entsprechen\, zu löschen\.
-    2\. Wir unterstützen keine Veranstaltungen mit sexistischen\, rassistischen oder allgemein diskriminierenden Inhalten\.
-    3\. Unser Service ist unentgeltlich und wird ausschließlich von Freiwilligen betrieben\.
-    4\. Aus technischen Gründen speichern wir deine Telegram\-User\-Id\, wenn du Veranstaltungen einreichst\. Ansonsten werden keine weiteren Daten erfasst\. Alle Daten liegen auf den Servern von Telegram\, auf die wir keinen Einfluss haben\.
+msg-rules-notice = { $icon } **Important Notice:**\  
+    1\. We reserve the right to delete events that do not align with our beliefs\.
+    2\. We do not support events with sexist, racist, or generally discriminatory content\.
+    3\. Our service is free of charge and operated exclusively by volunteers\.
+    4\. Anyone attempting to gain an advantage by deleting and reposting their events will be banned\.
+    5\. For technical reasons, we store your Telegram user ID when you submit events\. No other data is collected\. All data is stored on Telegram's servers, over which we have no control\.
+
+# --- Delete Event Command ---
+bot-entry-event-delete-command = Do you want to delete one of your events?
+bot-entry-delete-cancelled = Deletion process cancelled\. { $icon }
+
+# --- Delete Event Conversation ---
+msg-delete-event-user-not-found = User ID not found. Deletion not possible\.
+msg-delete-event-no-approved-events-found = You have no approved events that you could delete\.
+msg-delete-event-select-event = Select the event you want to delete:
+msg-delete-event-select-title = "{ $title }"
+msg-delete-event-btn-cancel = Cancel { $icon }
+msg-delete-event-cancelled = Deletion process cancelled\.
+msg-delete-event-not-found-error = Error: Selected event not found\.
+msg-delete-event-selected-details = You have selected the following event for deletion:
+msg-delete-event-confirm-prompt = Are you sure you want to permanently delete the event "{ $eventTitle }"? The message in the channel will also be removed\.
+msg-delete-event-btn-confirm = Yes, delete { $icon }
+msg-delete-event-error = An error occurred while deleting the event\. { $icon }
+
+# --- Event Service ---
+msg-service-event-deleted-success = { $icon } The event "{ $eventTitle }" was successfully deleted\.
+msg-service-event-deletion-error = { $icon } Error deleting the event\. Please try again later or contact support\.
