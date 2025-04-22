@@ -145,7 +145,9 @@ msg-edit-event-cat-count-deselection = { $deselection } entfernt\!
 msg-edit-event-output-selected-cats = Ausgewählte Kategorien: { $selectedCategories }
 msg-edit-event-cat-reset-btn = { $icon } Zurücksetzen
 msg-edit-event-cat-done-btn = { $icon } Fertig
-msg-edit-event-new-links = Bitte gib max\. 1 Link an \(max\. 40 Zeichen\)
+msg-edit-event-new-links = { $iconPensil } Bitte gib max\. 1 Link an \(max\. 40 Zeichen\)
+
+    { $iconTip } Tipp: Nutze einen URL\-Shortener um deinen Link zu kürzen\. Empfehlung: https://fckaf\.de
 msg-edit-event-new-image = Bitte sende ein *neues Bild* für die Veranstaltung \(PNG oder JPG\):
 msg-edit-event-image-download-error = Fehler beim Herunterladen des Bildes\.
 msg-edit-event-image-invalid-input = Ungültige Eingabe\. Bitte sende ein Bild\.

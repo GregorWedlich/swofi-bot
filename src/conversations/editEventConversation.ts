@@ -913,18 +913,24 @@ async function collectEventLinks(
   ctx: MyContext,
   eventData: Partial<Event>,
 ): Promise<boolean> {
-  await ctx.replyWithMarkdownV2(ctx.t('msg-edit-event-new-links'), {
-    reply_markup: new InlineKeyboard()
-      .text(
-        ctx.t('msg-edit-event-btn-next', { icon: ICONS.next }),
-        'skip_question',
-      )
-      .text(
-        ctx.t('msg-edit-event-btn-cancel', { icon: ICONS.reject }),
-        'cancel_conversation',
-      ),
-    link_preview_options: disableLinkPreview,
-  });
+  await ctx.replyWithMarkdownV2(
+    ctx.t('msg-edit-event-new-links', {
+      iconPensil: ICONS.pensil,
+      iconTip: ICONS.tip,
+    }),
+    {
+      reply_markup: new InlineKeyboard()
+        .text(
+          ctx.t('msg-edit-event-btn-next', { icon: ICONS.next }),
+          'skip_question',
+        )
+        .text(
+          ctx.t('msg-edit-event-btn-cancel', { icon: ICONS.reject }),
+          'cancel_conversation',
+        ),
+      link_preview_options: disableLinkPreview,
+    },
+  );
   const linksResponse = await conversation.wait();
 
   if (linksResponse.callbackQuery?.data === 'cancel_conversation') {
