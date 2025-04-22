@@ -19,6 +19,7 @@ import { ICONS } from '../utils/iconUtils';
 import { getLocaleUtil } from '../utils/localeUtils';
 import { createCancelKeyboard } from '../utils/keyboardUtils';
 import { escapeMarkdownV2Text } from '../utils/markdownUtils';
+import { displayEventSummaryWithOptions } from '../utils/conversationUtils';
 
 const locale = getLocaleUtil();
 
@@ -88,7 +89,106 @@ export async function submitEventConversation(
   );
   if (!proceedWithImage) return;
 
-  await summarizeAndSaveEvent(ctx, eventData);
+  let confirmed = false;
+  while (!confirmed) {
+    await ctx.replyWithMarkdownV2(
+      ctx.t('msg-summary-prompt', { icon: ICONS.approve }),
+      { link_preview_options: disableLinkPreview },
+    );
+
+    await ctx.replyWithMarkdownV2(
+      ctx.t('msg-summary-edit-options-heading', { icon: ICONS.pensil }),
+      { link_preview_options: disableLinkPreview },
+    );
+
+    await displayEventSummaryWithOptions(ctx, eventData);
+
+    const summaryResponse = await conversation.waitForCallbackQuery([
+      'confirm_submission',
+      'cancel_submission',
+      'edit_title',
+      'edit_description',
+      'edit_location',
+      'edit_date',
+      'edit_category',
+      'edit_links',
+      'edit_groupLink',
+      'edit_image',
+      'ignore_separator',
+    ]);
+    const selection = summaryResponse.callbackQuery.data;
+    await summaryResponse.answerCallbackQuery();
+
+    if (selection === 'ignore_separator') {
+      continue; // Go back to waiting for a real button press
+    }
+
+    switch (selection) {
+      case 'confirm_submission':
+        confirmed = true;
+        break;
+      case 'cancel_submission':
+        await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'), {
+          link_preview_options: disableLinkPreview,
+        });
+        return;
+      case 'edit_title':
+        if (!(await collectEventTitle(conversation, ctx, eventData))) return;
+        break;
+      case 'edit_description':
+        if (!(await collectEventDescription(conversation, ctx, eventData)))
+          return;
+        break;
+      case 'edit_location':
+        if (!(await collectEventLocation(conversation, ctx, eventData))) return;
+        break;
+      case 'edit_date':
+        if (!(await collectEventDates(conversation, ctx, eventData))) return;
+        break;
+      case 'edit_category':
+        if (!(await collectEventCategories(conversation, ctx, eventData)))
+          return;
+        break;
+      case 'edit_links':
+        if (!(await collectEventLinks(conversation, ctx, eventData))) return;
+        break;
+      case 'edit_groupLink':
+        if (!(await collectEventGroupLink(conversation, ctx, eventData)))
+          return;
+        break;
+      case 'edit_image':
+        if (!(await collectEventImage(conversation, ctx, eventData))) return;
+        break;
+    }
+  }
+
+  try {
+    const savedEvent = await saveEvent(eventData);
+
+    if (getEventsRequireApproval()) {
+      await ctx.replyWithMarkdownV2(
+        ctx.t('msg-submit-event-success-pending', { icon: ICONS.approve }),
+        {
+          link_preview_options: disableLinkPreview,
+        },
+      );
+      await sendEventToAdmins(ctx, savedEvent);
+    } else {
+      await ctx.replyWithMarkdownV2(
+        ctx.t('msg-submit-event-success-published', { icon: ICONS.approve }),
+        {
+          link_preview_options: disableLinkPreview,
+        },
+      );
+      await publishEvent(ctx, savedEvent);
+    }
+  } catch (error) {
+    console.error('Error saving or publishing event:', error);
+    await ctx.replyWithMarkdownV2(
+      ctx.t('msg-submit-event-save-error', { icon: ICONS.reject }),
+      { link_preview_options: disableLinkPreview },
+    );
+  }
 }
 
 function initializeEventData(ctx: MyContext): Prisma.EventCreateInput {
@@ -1051,30 +1151,5 @@ async function collectEventImage(
         },
       );
     }
-  }
-}
-
-async function summarizeAndSaveEvent(
-  ctx: MyContext,
-  eventData: Prisma.EventCreateInput,
-) {
-  const savedEvent = await saveEvent(eventData);
-
-  if (getEventsRequireApproval()) {
-    await ctx.replyWithMarkdownV2(
-      ctx.t('msg-submit-event-success-pending', { icon: ICONS.approve }),
-      {
-        link_preview_options: disableLinkPreview,
-      },
-    );
-    await sendEventToAdmins(ctx, savedEvent);
-  } else {
-    await ctx.replyWithMarkdownV2(
-      ctx.t('msg-submit-event-success-published', { icon: ICONS.approve }),
-      {
-        link_preview_options: disableLinkPreview,
-      },
-    );
-    await publishEvent(ctx, savedEvent);
   }
 }

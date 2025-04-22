@@ -1,11 +1,9 @@
 import { Conversation } from '@grammyjs/conversations';
-import { InlineKeyboard, InputFile } from 'grammy';
+import { InlineKeyboard } from 'grammy';
 import { parse } from 'date-fns';
 import { fromZonedTime, formatInTimeZone } from 'date-fns-tz';
 import { Event } from '@prisma/client';
-import { Readable } from 'stream';
-
-import { formatEvent } from '../utils/eventMessageFormatter';
+import { displayEventSummaryWithOptions } from '../utils/conversationUtils';
 
 import {
   sendEventToAdmins,
@@ -25,6 +23,7 @@ import {
   getDateFormat,
   getMaxEventEdits,
   getEventsRequireApproval,
+  getMaxCategories,
 } from '../constants/constants';
 import { escapeMarkdownV2Text } from '../utils/markdownUtils';
 
@@ -71,69 +70,116 @@ export async function editEventConversation(
       return;
     }
 
-    const event = await selectEvent(conversation, ctx, availableEvents);
-    if (!event) return;
+    const originalEvent = await selectEvent(conversation, ctx, availableEvents);
+    if (!originalEvent) return;
 
-    const eventData = initializeEventData(event);
+    const eventData: Partial<Event> = { ...originalEvent };
 
-    await askAndCollectField(
-      conversation,
-      ctx,
-      eventData,
-      'title',
-      collectEventTitle,
-    );
-    await askAndCollectField(
-      conversation,
-      ctx,
-      eventData,
-      'description',
-      collectEventDescription,
-    );
-    await askAndCollectField(
-      conversation,
-      ctx,
-      eventData,
-      'location',
-      collectEventLocation,
-    );
-    await askAndCollectField(
-      conversation,
-      ctx,
-      eventData,
-      'date',
-      collectEventDates,
-    );
-    await askAndCollectField(
-      conversation,
-      ctx,
-      eventData,
-      'category',
-      collectEventCategories,
-    );
-    await askAndCollectField(
-      conversation,
-      ctx,
-      eventData,
-      'links',
-      collectEventLinks,
-    );
-    await askAndCollectField(
-      conversation,
-      ctx,
-      eventData,
-      'groupLink',
-      collectEventGroupLink,
-    );
-    await askAndCollectField(
-      conversation,
-      ctx,
-      eventData,
-      'imageBase64',
-      collectEventImage,
-    );
+    let confirmed = false;
+    while (!confirmed) {
+      await ctx.replyWithMarkdownV2(
+        ctx.t('msg-summary-prompt', { icon: ICONS.approve }),
+        { link_preview_options: disableLinkPreview },
+      );
 
-    await summarizeAndSaveEvent(conversation, ctx, event, eventData);
+      await ctx.reply(
+        ctx.t('msg-summary-edit-options-heading', { icon: ICONS.pensil }),
+        { link_preview_options: disableLinkPreview },
+      );
+
+      await displayEventSummaryWithOptions(ctx, eventData);
+
+      const summaryResponse = await conversation.waitForCallbackQuery([
+        'confirm_submission',
+        'cancel_submission',
+        'edit_title',
+        'edit_description',
+        'edit_location',
+        'edit_date',
+        'edit_category',
+        'edit_links',
+        'edit_groupLink',
+        'edit_image',
+        'ignore_separator',
+      ]);
+      const selection = summaryResponse.callbackQuery.data;
+      await summaryResponse.answerCallbackQuery();
+
+      if (selection === 'ignore_separator') {
+        continue;
+      }
+
+      switch (selection) {
+        case 'confirm_submission':
+          confirmed = true;
+          break;
+        case 'cancel_submission':
+          await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'), {
+            link_preview_options: disableLinkPreview,
+          });
+          return; // Exit conversation
+        case 'edit_title':
+          if (!(await collectEventTitle(conversation, ctx, eventData))) return;
+          break;
+        case 'edit_description':
+          if (!(await collectEventDescription(conversation, ctx, eventData)))
+            return;
+          break;
+        case 'edit_location':
+          if (!(await collectEventLocation(conversation, ctx, eventData)))
+            return;
+          break;
+        case 'edit_date':
+          if (!(await collectEventDates(conversation, ctx, eventData))) return;
+          break;
+        case 'edit_category':
+          if (!(await collectEventCategories(conversation, ctx, eventData)))
+            return;
+          break;
+        case 'edit_links':
+          if (!(await collectEventLinks(conversation, ctx, eventData))) return;
+          break;
+        case 'edit_groupLink':
+          if (!(await collectEventGroupLink(conversation, ctx, eventData)))
+            return;
+          break;
+        case 'edit_image':
+          if (!(await collectEventImage(conversation, ctx, eventData))) return;
+          break;
+      }
+    }
+
+    try {
+      await updateEvent(originalEvent.id, {
+        ...eventData,
+        status: getEventsRequireApproval()
+          ? 'EDITED_PENDING'
+          : 'EDITED_APPROVED',
+        updatedCount: originalEvent.updatedCount + 1,
+      });
+
+      const updatedEventFromDb = (await findEventById(
+        originalEvent.id,
+      )) as Event;
+
+      if (getEventsRequireApproval()) {
+        await sendEventToAdmins(ctx, updatedEventFromDb, true);
+        await ctx.replyWithMarkdownV2(ctx.t('msg-edit-event-save-review'), {
+          link_preview_options: disableLinkPreview,
+        });
+      } else {
+        await publishEvent(ctx, updatedEventFromDb);
+        await ctx.replyWithMarkdownV2(ctx.t('msg-edit-event-save'), {
+          link_preview_options: disableLinkPreview,
+        });
+      }
+    } catch (error) {
+      console.error('Error updating or publishing edited event:', error);
+      await ctx.replyWithMarkdownV2(
+        ctx.t('msg-edit-event-final-save-error', { icon: ICONS.reject }),
+        { link_preview_options: disableLinkPreview },
+      );
+    }
   } catch (error) {
     console.error('Error while editing the event:', error);
     await ctx.replyWithMarkdownV2(
@@ -141,16 +187,6 @@ export async function editEventConversation(
       { link_preview_options: disableLinkPreview },
     );
   }
-}
-
-function initializeEventData(event: Event): Partial<Event> {
-  return {
-    ...event,
-    date: event.date || new Date(),
-    entryDate: event.entryDate || new Date(),
-    endDate: event.endDate || new Date(),
-    groupLink: event.groupLink || null,
-  };
 }
 
 async function selectEvent(
@@ -205,35 +241,6 @@ async function selectEvent(
     }
   }
 
-  await ctx.replyWithMarkdownV2(ctx.t('msg-edit-event-event-data'), {
-    link_preview_options: disableLinkPreview,
-  });
-
-  const messageText = formatEvent(ctx, event, {
-    context: 'user',
-    isEdit: false,
-  });
-
-  if (event.imageBase64) {
-    try {
-      const imageBuffer = Buffer.from(event.imageBase64, 'base64');
-      const stream = Readable.from(imageBuffer);
-      await ctx.replyWithPhoto(new InputFile(stream), {
-        caption: messageText,
-      });
-    } catch (error) {
-      console.error(`Error while sending image ID=${event.id}:`, error);
-      await ctx.replyWithMarkdownV2(
-        ctx.t('msg-edit-event-summary-error-by-sending-image'),
-        { link_preview_options: disableLinkPreview },
-      );
-    }
-  } else {
-    await ctx.replyWithMarkdownV2(messageText, {
-      link_preview_options: disableLinkPreview,
-    });
-  }
-
   return event;
 }
 
@@ -245,47 +252,29 @@ async function collectEventTitle(
   while (true) {
     try {
       await ctx.replyWithMarkdownV2(ctx.t('msg-edit-event-new-title'), {
-        reply_markup: new InlineKeyboard()
-          .text(
-            ctx.t('msg-edit-event-btn-next', { icon: ICONS.next }),
-            'skip_question',
-          )
-          .text(
-            ctx.t('msg-edit-event-btn-cancel', { icon: ICONS.reject }),
-            'cancel_conversation',
-          ),
+        reply_markup: new InlineKeyboard().text(
+          ctx.t('msg-conversation-cancelled-btn', { icon: ICONS.reject }),
+          'cancel_conversation',
+        ),
         link_preview_options: disableLinkPreview,
       });
       const response = await conversation.wait();
 
       if (response.callbackQuery?.data === 'cancel_conversation') {
         await response.answerCallbackQuery();
-        await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'), {
-          link_preview_options: disableLinkPreview,
-        });
         return false;
       }
 
-      if (response.callbackQuery?.data === 'skip_question') {
-        await response.answerCallbackQuery();
-        await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-skipped'), {
-          link_preview_options: disableLinkPreview,
-        });
-        return true;
-      }
-
       if (response.message?.text) {
-        if (response.message.text.length > 85) {
+        if (response.message.text.length > 80) {
           await ctx.replyWithMarkdownV2(
-            ctx.t('msg-edit-event-new-title-too-long', {
-              icon: ICONS.reject,
-            }),
+            ctx.t('msg-submit-event-title-too-long', { icon: ICONS.reject }),
             { link_preview_options: disableLinkPreview },
           );
           continue;
         } else {
           eventData.title = response.message.text;
-          break;
+          return true;
         }
       }
     } catch (error) {
@@ -296,7 +285,8 @@ async function collectEventTitle(
       );
     }
   }
-  return true;
+
+  return false;
 }
 
 async function collectEventDescription(
@@ -307,39 +297,23 @@ async function collectEventDescription(
   while (true) {
     try {
       await ctx.replyWithMarkdownV2(ctx.t('msg-edit-event-new-description'), {
-        reply_markup: new InlineKeyboard()
-          .text(
-            ctx.t('msg-edit-event-btn-next', { icon: ICONS.next }),
-            'skip_question',
-          )
-          .text(
-            ctx.t('msg-edit-event-btn-cancel', { icon: ICONS.reject }),
-            'cancel_conversation',
-          ),
+        reply_markup: new InlineKeyboard().text(
+          ctx.t('msg-conversation-cancelled-btn', { icon: ICONS.reject }),
+          'cancel_conversation',
+        ),
         link_preview_options: disableLinkPreview,
       });
       const response = await conversation.wait();
 
       if (response.callbackQuery?.data === 'cancel_conversation') {
         await response.answerCallbackQuery();
-        await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'), {
-          link_preview_options: disableLinkPreview,
-        });
         return false;
       }
 
-      if (response.callbackQuery?.data === 'skip_question') {
-        await response.answerCallbackQuery();
-        await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-skipped'), {
-          link_preview_options: disableLinkPreview,
-        });
-        return true;
-      }
-
       if (response.message?.text) {
-        if (response.message.text.length > 550) {
+        if (response.message.text.length > 405) {
           await ctx.replyWithMarkdownV2(
-            ctx.t('msg-edit-event-new-description-too-long', {
+            ctx.t('msg-submit-event-description-too-long', {
               icon: ICONS.reject,
             }),
             { link_preview_options: disableLinkPreview },
@@ -347,7 +321,7 @@ async function collectEventDescription(
           continue;
         } else {
           eventData.description = response.message.text;
-          break;
+          return true;
         }
       }
     } catch (error) {
@@ -358,7 +332,7 @@ async function collectEventDescription(
       );
     }
   }
-  return true;
+  return false;
 }
 
 async function collectEventLocation(
@@ -369,47 +343,30 @@ async function collectEventLocation(
   while (true) {
     try {
       await ctx.replyWithMarkdownV2(ctx.t('msg-edit-event-new-location'), {
-        reply_markup: new InlineKeyboard()
-          .text(
-            ctx.t('msg-edit-event-btn-next', { icon: ICONS.next }),
-            'skip_question',
-          )
-          .text(
-            ctx.t('msg-edit-event-btn-cancel', { icon: ICONS.reject }),
-            'cancel_conversation',
-          ),
+        reply_markup: new InlineKeyboard().text(
+          ctx.t('msg-conversation-cancelled-btn', { icon: ICONS.reject }),
+          'cancel_conversation',
+        ),
         link_preview_options: disableLinkPreview,
       });
       const response = await conversation.wait();
 
       if (response.callbackQuery?.data === 'cancel_conversation') {
         await response.answerCallbackQuery();
-        await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'), {
-          link_preview_options: disableLinkPreview,
-        });
         return false;
       }
 
-      if (response.callbackQuery?.data === 'skip_question') {
-        await response.answerCallbackQuery();
-        await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-skipped'), {
-          link_preview_options: disableLinkPreview,
-        });
-        return true;
-      }
-
       if (response.message?.text) {
-        if (response.message.text.length < 3) {
+        const textLength = response.message.text.length;
+        if (textLength < 3 || textLength > 90) {
           await ctx.replyWithMarkdownV2(
-            ctx.t('msg-edit-event-new-location-to-short', {
-              icon: ICONS.reject,
-            }),
+            ctx.t('msg-submit-event-location-invalid', { icon: ICONS.reject }),
             { link_preview_options: disableLinkPreview },
           );
           continue;
         } else {
           eventData.location = response.message.text;
-          break;
+          return true;
         }
       }
     } catch (error) {
@@ -420,7 +377,7 @@ async function collectEventLocation(
       );
     }
   }
-  return true;
+  return false;
 }
 
 async function collectEventDates(
@@ -430,58 +387,38 @@ async function collectEventDates(
 ): Promise<boolean> {
   while (true) {
     try {
-      let parsedEntryDate: Date | null = null;
-      let parsedStartDate: Date | null = null;
-      let parsedEndDate: Date | null = null;
+      let parsedEntryDate: Date | null = eventData.entryDate || null;
+      let parsedStartDate: Date | null = eventData.date || null;
+      let parsedEndDate: Date | null = eventData.endDate || null;
 
-      // Eintragsdatum
       while (true) {
         await ctx.replyWithMarkdownV2(
           ctx.t('msg-edit-event-new-entry-date', {
             date: escapeMarkdownV2Text(getDateFormat()),
           }),
           {
-            reply_markup: new InlineKeyboard()
-              .text(
-                ctx.t('msg-edit-event-btn-next', { icon: ICONS.next }),
-                'skip_question',
-              )
-              .text(
-                ctx.t('msg-edit-event-btn-cancel', { icon: ICONS.reject }),
-                'cancel_conversation',
-              ),
+            reply_markup: new InlineKeyboard().text(
+              ctx.t('msg-conversation-cancelled-btn', { icon: ICONS.reject }),
+              'cancel_conversation',
+            ),
             link_preview_options: disableLinkPreview,
           },
         );
         const entryResponse = await conversation.wait();
-
         if (entryResponse.callbackQuery?.data === 'cancel_conversation') {
           await entryResponse.answerCallbackQuery();
-          await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'), {
-            link_preview_options: disableLinkPreview,
-          });
           return false;
         }
-
-        if (entryResponse.callbackQuery?.data === 'skip_question') {
-          await entryResponse.answerCallbackQuery();
-          await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-skipped'), {
-            link_preview_options: disableLinkPreview,
-          });
-          return true;
-        }
-
         if (entryResponse.message?.text) {
-          const parsedEntryDateInTimeZone = parse(
+          const parsed = parse(
             entryResponse.message.text,
             getDateFormat(),
             new Date(),
             { locale },
           );
-
-          if (isNaN(parsedEntryDateInTimeZone.getTime())) {
+          if (isNaN(parsed.getTime())) {
             await ctx.replyWithMarkdownV2(
-              ctx.t('msg-edit-event-wrong-date-format', {
+              ctx.t('msg-submit-event-entry-date-invalid', {
                 icon: ICONS.reject,
                 date: escapeMarkdownV2Text(getDateFormat()),
               }),
@@ -489,21 +426,16 @@ async function collectEventDates(
             );
             continue;
           }
-
-          if (parsedEntryDateInTimeZone < new Date()) {
+          if (parsed < new Date()) {
             await ctx.replyWithMarkdownV2(
-              ctx.t('msg-edit-event-new-entry-date-future', {
+              ctx.t('msg-submit-event-entry-date-future', {
                 icon: ICONS.reject,
               }),
               { link_preview_options: disableLinkPreview },
             );
             continue;
           }
-
-          parsedEntryDate = fromZonedTime(
-            parsedEntryDateInTimeZone,
-            getTimezone(),
-          );
+          parsedEntryDate = fromZonedTime(parsed, getTimezone());
           break;
         }
       }
@@ -515,47 +447,28 @@ async function collectEventDates(
             date: escapeMarkdownV2Text(getDateFormat()),
           }),
           {
-            reply_markup: new InlineKeyboard()
-              .text(
-                ctx.t('msg-edit-event-btn-next', { icon: ICONS.next }),
-                'skip_question',
-              )
-              .text(
-                ctx.t('msg-edit-event-btn-cancel', { icon: ICONS.reject }),
-                'cancel_conversation',
-              ),
+            reply_markup: new InlineKeyboard().text(
+              ctx.t('msg-conversation-cancelled-btn', { icon: ICONS.reject }),
+              'cancel_conversation',
+            ),
             link_preview_options: disableLinkPreview,
           },
         );
         const startResponse = await conversation.wait();
-
         if (startResponse.callbackQuery?.data === 'cancel_conversation') {
           await startResponse.answerCallbackQuery();
-          await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'), {
-            link_preview_options: disableLinkPreview,
-          });
           return false;
         }
-
-        if (startResponse.callbackQuery?.data === 'skip_question') {
-          await startResponse.answerCallbackQuery();
-          await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-skipped'), {
-            link_preview_options: disableLinkPreview,
-          });
-          return true;
-        }
-
         if (startResponse.message?.text) {
-          const parsedStartDateInTimeZone = parse(
+          const parsed = parse(
             startResponse.message.text,
             getDateFormat(),
             new Date(),
             { locale },
           );
-
-          if (isNaN(parsedStartDateInTimeZone.getTime())) {
+          if (isNaN(parsed.getTime())) {
             await ctx.replyWithMarkdownV2(
-              ctx.t('msg-edit-event-wrong-date-format', {
+              ctx.t('msg-submit-event-start-date-invalid', {
                 icon: ICONS.reject,
                 date: escapeMarkdownV2Text(getDateFormat()),
               }),
@@ -563,25 +476,19 @@ async function collectEventDates(
             );
             continue;
           }
-
-          if (parsedStartDateInTimeZone < new Date()) {
+          if (parsed < new Date()) {
             await ctx.replyWithMarkdownV2(
-              ctx.t('msg-edit-event-new-start-date-future', {
+              ctx.t('msg-submit-event-start-date-future', {
                 icon: ICONS.reject,
               }),
               { link_preview_options: disableLinkPreview },
             );
             continue;
           }
-
-          parsedStartDate = fromZonedTime(
-            parsedStartDateInTimeZone,
-            getTimezone(),
-          );
-
+          parsedStartDate = fromZonedTime(parsed, getTimezone());
           if (parsedEntryDate && parsedEntryDate > parsedStartDate) {
             await ctx.replyWithMarkdownV2(
-              ctx.t('msg-edit-event-new-start-after-entry', {
+              ctx.t('msg-submit-event-start-date-before-entry', {
                 icon: ICONS.reject,
               }),
               { link_preview_options: disableLinkPreview },
@@ -599,47 +506,28 @@ async function collectEventDates(
             date: escapeMarkdownV2Text(getDateFormat()),
           }),
           {
-            reply_markup: new InlineKeyboard()
-              .text(
-                ctx.t('msg-edit-event-btn-next', { icon: ICONS.next }),
-                'skip_question',
-              )
-              .text(
-                ctx.t('msg-edit-event-btn-cancel', { icon: ICONS.reject }),
-                'cancel_conversation',
-              ),
+            reply_markup: new InlineKeyboard().text(
+              ctx.t('msg-conversation-cancelled-btn', { icon: ICONS.reject }),
+              'cancel_conversation',
+            ),
             link_preview_options: disableLinkPreview,
           },
         );
         const endResponse = await conversation.wait();
-
         if (endResponse.callbackQuery?.data === 'cancel_conversation') {
           await endResponse.answerCallbackQuery();
-          await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'), {
-            link_preview_options: disableLinkPreview,
-          });
           return false;
         }
-
-        if (endResponse.callbackQuery?.data === 'skip_question') {
-          await endResponse.answerCallbackQuery();
-          await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-skipped'), {
-            link_preview_options: disableLinkPreview,
-          });
-          return true;
-        }
-
         if (endResponse.message?.text) {
-          const parsedEndDateInTimeZone = parse(
+          const parsed = parse(
             endResponse.message.text,
             getDateFormat(),
             new Date(),
             { locale },
           );
-
-          if (isNaN(parsedEndDateInTimeZone.getTime())) {
+          if (isNaN(parsed.getTime())) {
             await ctx.replyWithMarkdownV2(
-              ctx.t('msg-edit-event-wrong-date-format', {
+              ctx.t('msg-submit-event-end-date-invalid', {
                 icon: ICONS.reject,
                 date: escapeMarkdownV2Text(getDateFormat()),
               }),
@@ -647,22 +535,17 @@ async function collectEventDates(
             );
             continue;
           }
-
-          if (parsedEndDateInTimeZone < new Date()) {
+          if (parsed < new Date()) {
             await ctx.replyWithMarkdownV2(
-              ctx.t('msg-edit-event-new-end-date-future', {
-                icon: ICONS.reject,
-              }),
+              ctx.t('msg-submit-event-end-date-future', { icon: ICONS.reject }),
               { link_preview_options: disableLinkPreview },
             );
             continue;
           }
-
-          parsedEndDate = fromZonedTime(parsedEndDateInTimeZone, getTimezone());
-
+          parsedEndDate = fromZonedTime(parsed, getTimezone());
           if (parsedStartDate && parsedEndDate <= parsedStartDate) {
             await ctx.replyWithMarkdownV2(
-              ctx.t('msg-edit-event-new-end-after-start', {
+              ctx.t('msg-submit-event-end-date-before-start', {
                 icon: ICONS.reject,
               }),
               { link_preview_options: disableLinkPreview },
@@ -671,6 +554,15 @@ async function collectEventDates(
           }
           break;
         }
+      }
+
+      if (!parsedEntryDate || !parsedStartDate || !parsedEndDate) {
+        console.error('Date parsing failed unexpectedly in collectEventDates');
+        await ctx.replyWithMarkdownV2(
+          ctx.t('msg-edit-event-dates-error', { icon: ICONS.reject }),
+          { link_preview_options: disableLinkPreview },
+        );
+        return false;
       }
 
       const formattedEntryDate = formatInTimeZone(
@@ -693,7 +585,7 @@ async function collectEventDates(
       );
 
       await ctx.replyWithMarkdownV2(
-        ctx.t('msg-edit-event-dates-summary', {
+        ctx.t('msg-submit-event-date-summary', {
           icon: ICONS.date,
           entryDate: escapeMarkdownV2Text(formattedEntryDate),
           startDate: escapeMarkdownV2Text(formattedStartDate),
@@ -702,16 +594,21 @@ async function collectEventDates(
         {
           reply_markup: new InlineKeyboard()
             .text(
-              ctx.t('msg-edit-event-dates-confirmed', {
+              ctx.t('msg-submit-event-date-summary-confirm', {
                 icon: ICONS.approve,
               }),
               'dates_confirm',
             )
             .text(
-              ctx.t('msg-edit-event-dates-reset', {
-                icon: ICONS.reject,
+              ctx.t('msg-submit-event-date-summary-reset', {
+                icon: ICONS.reset,
               }),
               'dates_reset',
+            )
+            .row()
+            .text(
+              ctx.t('msg-conversation-cancelled-btn', { icon: ICONS.reject }),
+              'cancel_conversation',
             ),
           link_preview_options: disableLinkPreview,
         },
@@ -720,19 +617,25 @@ async function collectEventDates(
       const confirmResponse = await conversation.waitForCallbackQuery([
         'dates_confirm',
         'dates_reset',
+        'cancel_conversation',
       ]);
+
+      if (confirmResponse.callbackQuery.data === 'cancel_conversation') {
+        await confirmResponse.answerCallbackQuery();
+        return false;
+      }
 
       if (confirmResponse.callbackQuery.data === 'dates_confirm') {
         eventData.entryDate = parsedEntryDate;
         eventData.date = parsedStartDate;
         eventData.endDate = parsedEndDate;
         await confirmResponse.answerCallbackQuery(
-          ctx.t('msg-edit-event-dates-confirmed', { icon: ICONS.approve }),
+          ctx.t('msg-submit-event-dates-saved', { icon: ICONS.save }),
         );
-        break;
+        return true;
       } else {
         await confirmResponse.answerCallbackQuery(
-          ctx.t('msg-edit-event-dates-reset', { icon: ICONS.reject }),
+          ctx.t('msg-submit-event-dates-reset', { icon: ICONS.reset }),
         );
       }
     } catch (error) {
@@ -743,7 +646,7 @@ async function collectEventDates(
       );
     }
   }
-  return true;
+  return false;
 }
 
 async function collectEventCategories(
@@ -751,8 +654,17 @@ async function collectEventCategories(
   ctx: MyContext,
   eventData: Partial<Event>,
 ): Promise<boolean> {
-  let selectedCategories: string[] = [];
+  let selectedCategories: string[] = [...(eventData.category || [])];
   let categorySelectionComplete = false;
+
+  if (selectedCategories.length > 0) {
+    await ctx.replyWithMarkdownV2(
+      ctx.t('msg-edit-event-output-selected-cats', {
+        selectedCategories: selectedCategories.join(', '),
+      }),
+      { link_preview_options: disableLinkPreview },
+    );
+  }
 
   await ctx.replyWithMarkdownV2(ctx.t('msg-edit-event-new-category'), {
     reply_markup: {
@@ -843,18 +755,22 @@ async function collectEventCategories(
         ],
         [
           {
-            text: ctx.t('msg-edit-event-cat-reset-btn', {
-              icon: ICONS.reset,
-            }),
+            text: ctx.t('msg-edit-event-cat-reset-btn', { icon: ICONS.reset }),
             callback_data: 'cat_reset',
           },
         ],
         [
           {
-            text: ctx.t('msg-edit-event-cat-done-btn', {
-              icon: ICONS.approve,
-            }),
+            text: ctx.t('msg-edit-event-cat-done-btn', { icon: ICONS.approve }),
             callback_data: 'cat_done',
+          },
+        ],
+        [
+          {
+            text: ctx.t('msg-conversation-cancelled-btn', {
+              icon: ICONS.reject,
+            }),
+            callback_data: 'cancel_conversation',
           },
         ],
       ],
@@ -863,7 +779,13 @@ async function collectEventCategories(
   });
 
   while (!categorySelectionComplete) {
-    const categoryResponse = await conversation.waitForCallbackQuery(/^cat_/);
+    const categoryResponse = await conversation.waitForCallbackQuery(
+      /^(cat_|cancel_conversation)/,
+    );
+    if (categoryResponse.callbackQuery.data === 'cancel_conversation') {
+      await categoryResponse.answerCallbackQuery();
+      return false;
+    }
     const selection = categoryResponse.callbackQuery.data.replace('cat_', '');
 
     if (selection === 'done') {
@@ -871,35 +793,56 @@ async function collectEventCategories(
         eventData.category = selectedCategories;
         categorySelectionComplete = true;
         await categoryResponse.answerCallbackQuery(
-          ctx.t('msg-edit-event-cat-saved'),
+          ctx.t('msg-submit-event-category-saved', { icon: ICONS.save }),
         );
       } else {
         await categoryResponse.answerCallbackQuery(
-          ctx.t('msg-edit-event-min-cat'),
+          ctx.t('msg-submit-event-category-empty', { icon: ICONS.reject }),
         );
       }
     } else if (selection === 'reset') {
       selectedCategories = [];
       await categoryResponse.answerCallbackQuery(
-        ctx.t('msg-edit-event-cat-reset'),
+        ctx.t('msg-submit-event-category-reset', { icon: ICONS.reset }),
+      );
+      await ctx.replyWithMarkdownV2(
+        ctx.t('msg-submit-event-category-reset', { icon: ICONS.reset }),
+        { link_preview_options: disableLinkPreview },
       );
     } else {
       if (!selectedCategories.includes(selection)) {
+        if (selectedCategories.length >= getMaxCategories()) {
+          await categoryResponse.answerCallbackQuery(
+            ctx.t('msg-submit-event-category-max-reached', {
+              icon: ICONS.warning,
+              max: getMaxCategories(),
+            }),
+          );
+          await ctx.replyWithMarkdownV2(
+            ctx.t('msg-submit-event-category-max-reached', {
+              icon: ICONS.reject,
+              max: getMaxCategories(),
+            }),
+            { link_preview_options: disableLinkPreview },
+          );
+          continue;
+        }
         selectedCategories.push(selection);
         await categoryResponse.answerCallbackQuery(
-          ctx.t('msg-edit-event-cat-count-selection', { selection }),
+          ctx.t('msg-submit-event-category-added', { category: selection }),
         );
       } else {
         selectedCategories = selectedCategories.filter(
           (cat) => cat !== selection,
         );
         await categoryResponse.answerCallbackQuery(
-          ctx.t('msg-edit-event-cat-count-deselection', { selection }),
+          ctx.t('msg-submit-event-category-removed', { category: selection }),
         );
       }
       await ctx.replyWithMarkdownV2(
-        ctx.t('msg-edit-event-output-selected-cats', {
-          selectedCategories: selectedCategories.join(', '),
+        ctx.t('msg-submit-event-category-selected', {
+          icon: ICONS.category,
+          categories: selectedCategories.join(', '),
         }),
         { link_preview_options: disableLinkPreview },
       );
@@ -913,52 +856,61 @@ async function collectEventLinks(
   ctx: MyContext,
   eventData: Partial<Event>,
 ): Promise<boolean> {
-  await ctx.replyWithMarkdownV2(
-    ctx.t('msg-edit-event-new-links', {
-      iconPensil: ICONS.pensil,
-      iconTip: ICONS.tip,
-    }),
-    {
-      reply_markup: new InlineKeyboard()
-        .text(
-          ctx.t('msg-edit-event-btn-next', { icon: ICONS.next }),
-          'skip_question',
-        )
-        .text(
-          ctx.t('msg-edit-event-btn-cancel', { icon: ICONS.reject }),
-          'cancel_conversation',
-        ),
-      link_preview_options: disableLinkPreview,
-    },
-  );
-  const linksResponse = await conversation.wait();
+  while (true) {
+    try {
+      await ctx.replyWithMarkdownV2(
+        ctx.t('msg-submit-event-links', {
+          iconPensil: ICONS.pensil,
+          iconTip: ICONS.tip,
+        }),
+        {
+          reply_markup: new InlineKeyboard()
+            .text(
+              ctx.t('msg-submit-event-links-no-btn', { icon: ICONS.next }),
+              'no_links',
+            )
+            .text(
+              ctx.t('msg-conversation-cancelled-btn', { icon: ICONS.reject }),
+              'cancel_conversation',
+            ),
+          link_preview_options: disableLinkPreview,
+        },
+      );
+      const response = await conversation.wait();
 
-  if (linksResponse.callbackQuery?.data === 'cancel_conversation') {
-    await linksResponse.answerCallbackQuery();
-    await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'), {
-      link_preview_options: disableLinkPreview,
-    });
-    return false;
-  }
-
-  if (linksResponse.callbackQuery?.data === 'skip_question') {
-    await linksResponse.answerCallbackQuery();
-    await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-skipped'), {
-      link_preview_options: disableLinkPreview,
-    });
-    return true;
-  }
-
-  if (linksResponse.message?.text) {
-    const linksText = linksResponse.message.text;
-    if (linksText.toLowerCase() !== 'no') {
-      const links = linksText.split(' ').slice(0, 2);
-      eventData.links = links;
-    } else {
-      eventData.links = [];
+      if (response.callbackQuery?.data === 'cancel_conversation') {
+        await response.answerCallbackQuery();
+        return false;
+      } else if (response.callbackQuery?.data === 'no_links') {
+        await response.answerCallbackQuery();
+        eventData.links = [];
+        return true;
+      } else if (response.message?.text) {
+        if (response.message.text.length > 40) {
+          await ctx.replyWithMarkdownV2(
+            ctx.t('msg-submit-event-link-too-long', { icon: ICONS.reject }),
+            { link_preview_options: disableLinkPreview },
+          );
+          continue;
+        }
+        const links = response.message.text.split(' ').slice(0, 1);
+        eventData.links = links;
+        return true;
+      } else {
+        await ctx.replyWithMarkdownV2(
+          ctx.t('msg-submit-event-links-invalid', { icon: ICONS.reject }),
+          { link_preview_options: disableLinkPreview },
+        );
+      }
+    } catch (error) {
+      console.error('Error while collecting links:', error);
+      await ctx.replyWithMarkdownV2(
+        ctx.t('msg-submit-event-links-error', { icon: ICONS.reject }),
+        { link_preview_options: disableLinkPreview },
+      );
     }
   }
-  return true;
+  return false;
 }
 
 async function collectEventGroupLink(
@@ -969,15 +921,15 @@ async function collectEventGroupLink(
   while (true) {
     try {
       await ctx.replyWithMarkdownV2(
-        ctx.t('msg-edit-event-new-group-link', { icon: ICONS.links }),
+        ctx.t('msg-submit-event-group-link', { icon: ICONS.links }),
         {
           reply_markup: new InlineKeyboard()
             .text(
-              ctx.t('msg-edit-event-btn-next', { icon: ICONS.next }),
-              'skip_question',
+              ctx.t('msg-submit-event-links-no-btn', { icon: ICONS.next }),
+              'no_group_link',
             )
             .text(
-              ctx.t('msg-edit-event-btn-cancel', { icon: ICONS.reject }),
+              ctx.t('msg-conversation-cancelled-btn', { icon: ICONS.reject }),
               'cancel_conversation',
             ),
           link_preview_options: disableLinkPreview,
@@ -987,33 +939,29 @@ async function collectEventGroupLink(
 
       if (response.callbackQuery?.data === 'cancel_conversation') {
         await response.answerCallbackQuery();
-        await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'), {
-          link_preview_options: disableLinkPreview,
-        });
         return false;
-      }
-
-      if (response.callbackQuery?.data === 'skip_question') {
+      } else if (response.callbackQuery?.data === 'no_group_link') {
         await response.answerCallbackQuery();
-        await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-skipped'), {
-          link_preview_options: disableLinkPreview,
-        });
+        eventData.groupLink = null;
         return true;
-      }
-
-      if (response.message?.text) {
+      } else if (response.message?.text) {
         eventData.groupLink = response.message.text;
-        break;
+        return true;
+      } else {
+        await ctx.replyWithMarkdownV2(
+          ctx.t('msg-submit-event-group-link-invalid', { icon: ICONS.reject }),
+          { link_preview_options: disableLinkPreview },
+        );
       }
     } catch (error) {
-      console.error('Error while collecting the group link:', error);
+      console.error('Error while collecting group link:', error);
       await ctx.replyWithMarkdownV2(
-        ctx.t('msg-edit-event-group-link-error', { icon: ICONS.reject }),
+        ctx.t('msg-submit-event-group-link-error', { icon: ICONS.reject }),
         { link_preview_options: disableLinkPreview },
       );
     }
   }
-  return true;
+  return false;
 }
 
 async function collectEventImage(
@@ -1021,205 +969,64 @@ async function collectEventImage(
   ctx: MyContext,
   eventData: Partial<Event>,
 ): Promise<boolean> {
-  let validImageInput = false;
-
-  while (!validImageInput) {
+  while (true) {
     try {
-      await ctx.replyWithMarkdownV2(ctx.t('msg-edit-event-new-image'), {
-        reply_markup: new InlineKeyboard()
-          .text(
-            ctx.t('msg-edit-event-btn-next', { icon: ICONS.next }),
-            'skip_question',
-          )
-          .text(
-            ctx.t('msg-edit-event-btn-cancel', { icon: ICONS.reject }),
-            'cancel_conversation',
-          ),
-        link_preview_options: disableLinkPreview,
-      });
+      await ctx.replyWithMarkdownV2(
+        ctx.t('msg-submit-event-image', { icon: ICONS.image }),
+        {
+          reply_markup: new InlineKeyboard()
+            .text(
+              ctx.t('msg-submit-event-image-no-btn', { icon: ICONS.next }),
+              'no_image',
+            )
+            .text(
+              ctx.t('msg-conversation-cancelled-btn', { icon: ICONS.reject }),
+              'cancel_conversation',
+            ),
+          link_preview_options: disableLinkPreview,
+        },
+      );
       const imageResponse = await conversation.wait();
 
       if (imageResponse.callbackQuery?.data === 'cancel_conversation') {
         await imageResponse.answerCallbackQuery();
-        await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'), {
-          link_preview_options: disableLinkPreview,
-        });
         return false;
-      }
-
-      if (imageResponse.callbackQuery?.data === 'skip_question') {
+      } else if (imageResponse.callbackQuery?.data === 'no_image') {
         await imageResponse.answerCallbackQuery();
-        await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-skipped'), {
-          link_preview_options: disableLinkPreview,
-        });
+        eventData.imageBase64 = null;
         return true;
-      }
-
-      if (imageResponse.message?.photo) {
+      } else if (imageResponse.message?.photo) {
         const photo =
           imageResponse.message.photo[imageResponse.message.photo.length - 1];
         const fileId = photo.file_id;
         const file = await ctx.api.getFile(fileId);
         const filePath = file.file_path || '';
         const fileUrl = `https://api.telegram.org/file/bot${process.env.TELEGRAM_TOKEN}/${filePath}`;
-
         const response = await fetch(fileUrl);
         if (!response.ok) {
           await ctx.replyWithMarkdownV2(
-            ctx.t('msg-edit-event-image-download-error'),
+            ctx.t('msg-submit-event-image-error', { icon: ICONS.reject }),
             { link_preview_options: disableLinkPreview },
           );
           continue;
         }
         const buffer = await response.arrayBuffer();
         const base64Image = Buffer.from(buffer).toString('base64');
-
         eventData.imageBase64 = base64Image;
-        validImageInput = true;
-      } else if (imageResponse.message?.text?.toLowerCase() === 'no') {
-        eventData.imageBase64 = null;
-        validImageInput = true;
+        return true;
       } else {
         await ctx.replyWithMarkdownV2(
-          ctx.t('msg-edit-event-image-invalid-input'),
+          ctx.t('msg-submit-event-image-invalid', { icon: ICONS.reject }),
           { link_preview_options: disableLinkPreview },
         );
       }
     } catch (error) {
       console.error('Error while collecting the image:', error);
       await ctx.replyWithMarkdownV2(
-        ctx.t('msg-edit-event-image-error', { icon: ICONS.reject }),
+        ctx.t('msg-submit-event-image-error', { icon: ICONS.reject }),
         { link_preview_options: disableLinkPreview },
       );
     }
   }
-  return true;
-}
-
-async function summarizeAndSaveEvent(
-  conversation: Conversation<MyContext>,
-  ctx: MyContext,
-  originalEvent: Event,
-  updatedEventData: Partial<Event>,
-) {
-  await ctx.replyWithMarkdownV2(ctx.t('msg-edit-event-changes'), {
-    link_preview_options: disableLinkPreview,
-  });
-
-  const updatedMessageText = formatEvent(ctx, updatedEventData as Event, {
-    context: 'user',
-    isEdit: true,
-  });
-
-  if (updatedEventData.imageBase64) {
-    try {
-      const imageBuffer = Buffer.from(updatedEventData.imageBase64, 'base64');
-      const stream = Readable.from(imageBuffer);
-      await ctx.replyWithPhoto(new InputFile(stream), {
-        caption: updatedMessageText,
-      });
-    } catch (error) {
-      console.error(
-        `Error by sending image for event ID=${updatedEventData.id}:`,
-        error,
-      );
-      await ctx.replyWithMarkdownV2(
-        ctx.t('msg-edit-event-summary-error-by-sending-image'),
-        { link_preview_options: disableLinkPreview },
-      );
-    }
-  } else {
-    await ctx.replyWithMarkdownV2(updatedMessageText, {
-      link_preview_options: disableLinkPreview,
-    });
-  }
-
-  await ctx.replyWithMarkdownV2(ctx.t('msg-edit-event-summary-save-changes'), {
-    reply_markup: new InlineKeyboard()
-      .text(
-        ctx.t('msg-edit-event-field-yes', { icon: ICONS.approve }),
-        'save_changes',
-      )
-      .text(
-        ctx.t('msg-edit-event-field-no', { icon: ICONS.reject }),
-        'discard_changes',
-      ),
-    link_preview_options: disableLinkPreview,
-  });
-
-  const saveChanges = await conversation.waitForCallbackQuery([
-    'save_changes',
-    'discard_changes',
-  ]);
-  await saveChanges.answerCallbackQuery();
-
-  if (saveChanges.callbackQuery.data === 'save_changes') {
-    await updateEvent(originalEvent.id, {
-      ...updatedEventData,
-      status: getEventsRequireApproval() ? 'EDITED_PENDING' : 'EDITED_APPROVED',
-      updatedCount: originalEvent.updatedCount + 1,
-    });
-
-    const updatedEventFromDb = (await findEventById(originalEvent.id)) as Event;
-
-    if (getEventsRequireApproval()) {
-      await sendEventToAdmins(ctx, updatedEventFromDb, true);
-      await ctx.replyWithMarkdownV2(ctx.t('msg-edit-event-save-review'), {
-        link_preview_options: disableLinkPreview,
-      });
-    } else {
-      await publishEvent(ctx, updatedEventFromDb);
-      await ctx.replyWithMarkdownV2(ctx.t('msg-edit-event-save'), {
-        link_preview_options: disableLinkPreview,
-      });
-    }
-  } else {
-    await ctx.replyWithMarkdownV2(ctx.t('msg-edit-event-changes-reject'), {
-      link_preview_options: disableLinkPreview,
-    });
-  }
-}
-
-async function askAndCollectField(
-  conversation: Conversation<MyContext>,
-  ctx: MyContext,
-  eventData: Partial<Event>,
-  fieldName: string,
-  collectFunction: (
-    conversation: Conversation<MyContext>,
-    ctx: MyContext,
-    eventData: Partial<Event>,
-  ) => Promise<boolean>,
-) {
-  await ctx.replyWithMarkdownV2(
-    ctx.t('msg-edit-event-field-edit', {
-      fieldName: ctx.t(`msg-edit-event-field-${fieldName}`),
-    }),
-    {
-      reply_markup: new InlineKeyboard()
-        .text(
-          ctx.t('msg-edit-event-field-yes', { icon: ICONS.approve }),
-          `edit_${fieldName}`,
-        )
-        .text(
-          ctx.t('msg-edit-event-field-no', { icon: ICONS.reject }),
-          `skip_${fieldName}`,
-        ),
-      link_preview_options: disableLinkPreview,
-    },
-  );
-
-  const response = await conversation.waitForCallbackQuery([
-    `edit_${fieldName}`,
-    `skip_${fieldName}`,
-  ]);
-
-  await response.answerCallbackQuery();
-
-  if (response.callbackQuery.data === `edit_${fieldName}`) {
-    const proceed = await collectFunction(conversation, ctx, eventData);
-    if (proceed === false) {
-      return false;
-    }
-  }
+  return false;
 }

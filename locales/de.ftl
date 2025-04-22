@@ -113,6 +113,7 @@ msg-submit-event-btn-cancel = { $icon } Abbrechen
 # Punkt am Ende für MarkdownV2 escaped
 msg-submit-event-group-link = { $icon } Möchtest du eine Telegram Gruppe für dein Event hinterlegen? Teile den Link deiner Gruppe hier\.
 msg-submit-event-group-link-error = { $icon } Fehler beim Senden des Gruppenlinks\.
+msg-submit-event-save-error = { $icon } Fehler beim Speichern oder Veröffentlichen des Events\. Bitte versuche es erneut\.
 
 # /src/conversations/editEventConversation.ts
 msg-edit-event-user-not-found = Benutzer nicht gefunden\.
@@ -174,6 +175,8 @@ msg-edit-event-new-group-link = { $icon } Möchtest du den Gruppenlink ändern?
 msg-edit-event-btn-cancel  = { $icon } Abbrechen
 msg-edit-event-title-error = { $icon } Fehler bei der Verarbeitung des Titels\.
 msg-edit-event-group-link-error = { $icon } Fehler beim Senden des Gruppenlinks\.
+msg-edit-event-final-save-error = { $icon } Fehler beim Speichern oder Veröffentlichen des bearbeiteten Events\.
+msg-edit-event-final-save-error = { $icon } Fehler beim Speichern oder Veröffentlichen des bearbeiteten Events\.
 
 # /src/bot.ts - Support Command
 msg-support-title = { $icon } Support & Kontakt
@@ -289,3 +292,18 @@ msg-delete-event-error = Ein Fehler ist beim Löschen des Events aufgetreten\. {
 # --- Event Service ---
 msg-service-event-deleted-success = { $icon } Das Event "{ $eventTitle }" wurde erfolgreich gelöscht\.
 msg-service-event-deletion-error = { $icon } Fehler beim Löschen des Events\. Bitte versuche es später erneut oder kontaktiere den Support\.
+
+# --- Summary Buttons ---
+msg-summary-btn-confirm = { $icon } Bestätigen
+msg-summary-btn-cancel = { $icon } Abbrechen
+msg-summary-btn-edit-title = { $icon } Titel
+msg-summary-btn-edit-description = { $icon } Beschreibung
+msg-summary-btn-edit-location = { $icon } Ort
+msg-summary-btn-edit-date = { $icon } Datum
+msg-summary-btn-edit-category = { $icon } Kategorien
+msg-summary-btn-edit-links = { $icon } Links
+msg-summary-btn-edit-groupLink = { $icon } Gruppenlink
+msg-summary-btn-edit-image = { $icon } Bild
+msg-summary-error-sending-image = { $icon } Fehler beim Senden des Bildes in der Zusammenfassung\. Die Textdetails werden trotzdem angezeigt\.
+msg-summary-prompt = { $icon } Hier ist eine Zusammenfassung deines Events\. Bitte überprüfe die Details und bestätige oder bearbeite sie\.
+msg-summary-edit-options-heading = { $icon } Bearbeitungsoptionen\:
