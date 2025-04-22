@@ -32,6 +32,10 @@ import {
 import { ICONS } from './utils/iconUtils';
 import { escapeMarkdownV2Text } from './utils/markdownUtils';
 
+const disableLinkPreview = {
+  is_disabled: true,
+};
+
 export const bot = new Bot<MyContext>(getTelegramToken() || '', {
   client: {
     timeoutSeconds: 500,
@@ -70,7 +74,7 @@ bot.use(
     onLimitExceeded: async (ctx) => {
       await ctx.replyWithMarkdownV2(
         ctx.t('bot-entry-error-rate-limit-exceeded'),
-        {},
+        { link_preview_options: disableLinkPreview },
       );
     },
     keyGenerator: (ctx) => {
@@ -78,14 +82,6 @@ bot.use(
     },
   }),
 );
-
-// bot.use(async (ctx, next) => {
-//   if (ctx.session.locale) {
-//     console.log('Setting locale to', ctx.session.locale);
-//     await ctx.i18n.setLocale(ctx.session.locale);
-//   }
-//   await next();
-// });
 
 bot.catch(async (err) => {
   const ctx = err.ctx;
@@ -106,6 +102,7 @@ bot.catch(async (err) => {
         ctx.t('bot-entry-error-unknown', {
           errorcode: e instanceof GrammyError ? e.error_code : 'unbekannt',
         }),
+        { link_preview_options: disableLinkPreview },
       );
     } catch (replyError) {
       console.error('Error sending error message to user:', replyError);
@@ -120,27 +117,6 @@ bot.use(createConversation(searchEventConversation, 'searchEventConversation'));
 bot.use(createConversation(editEventConversation, 'editEventConversation'));
 bot.use(createConversation(deleteEventConversation, 'deleteEventConversation'));
 
-// bot.command('language', async (ctx) => {
-//   await ctx.replyWithMarkdownV2(ctx.t('bot-entry-choose-language'), {
-//     reply_markup: {
-//       inline_keyboard: [
-//         [
-//           {
-//             text: ctx.t('bot-entry-language-english'),
-//             callback_data: 'set_lang_en',
-//           },
-//         ],
-//         [
-//           {
-//             text: ctx.t('bot-entry-language-german'),
-//             callback_data: 'set_lang_de',
-//           },
-//         ],
-//       ],
-//     },
-//   });
-// });
-
 bot.command('submit', async (ctx) => {
   await ctx.replyWithMarkdownV2(
     ctx.t('bot-entry-submit-event', { icon: ICONS.event }),
@@ -148,6 +124,7 @@ bot.command('submit', async (ctx) => {
       reply_markup: new InlineKeyboard()
         .text(ctx.t('bot-entry-yes', { icon: ICONS.approve }), 'submit_event')
         .text(ctx.t('bot-entry-no', { icon: ICONS.reject }), 'cancel_submit'),
+      link_preview_options: disableLinkPreview,
     },
   );
 });
@@ -160,6 +137,7 @@ bot.command('search', async (ctx) => {
         ctx.t('bot-entry-start-search'),
         'start_search',
       ),
+      link_preview_options: disableLinkPreview,
     },
   );
 });
@@ -169,6 +147,7 @@ bot.command('edit', async (ctx) => {
     reply_markup: new InlineKeyboard()
       .text(ctx.t('bot-entry-yes', { icon: ICONS.approve }), 'edit_event')
       .text(ctx.t('bot-entry-no', { icon: ICONS.reject }), 'cancel_edit'),
+    link_preview_options: disableLinkPreview,
   });
 });
 
@@ -177,6 +156,7 @@ bot.command('delete', async (ctx) => {
     reply_markup: new InlineKeyboard()
       .text(ctx.t('bot-entry-yes', { icon: ICONS.approve }), 'start_delete')
       .text(ctx.t('bot-entry-no', { icon: ICONS.reject }), 'cancel_delete'),
+    link_preview_options: disableLinkPreview,
   });
 });
 
@@ -218,39 +198,19 @@ bot.command('support', async (ctx) => {
     message += '\n' + ctx.t('msg-support-no-contact', { icon: noContactIcon });
   }
 
-  await ctx.replyWithMarkdownV2(message);
+  await ctx.replyWithMarkdownV2(message, {
+    link_preview_options: disableLinkPreview,
+  });
 });
 
 bot.command('rules', async (ctx) => {
   const icon = ICONS.rules || '📜';
   const notice = ctx.t('msg-rules-notice', { icon });
 
-  await ctx.replyWithMarkdownV2(notice);
+  await ctx.replyWithMarkdownV2(notice, {
+    link_preview_options: disableLinkPreview,
+  });
 });
-
-// bot.callbackQuery(/^set_lang_(en|de)$/, async (ctx) => {
-//   const newLocale = ctx.match[1];
-//   await ctx.i18n.setLocale(newLocale);
-//   ctx.session.locale = newLocale;
-
-//   await ctx.answerCallbackQuery(
-//     ctx.t('bot-entry-language-set', {
-//       locale:
-//         newLocale === 'en'
-//           ? ctx.t('bot-entry-language-english')
-//           : ctx.t('bot-entry-language-german'),
-//     }),
-//   );
-
-//   await ctx.replyWithMarkdownV2(
-//     ctx.t('bot-entry-language-set', {
-//       locale:
-//         newLocale === 'en'
-//           ? ctx.t('bot-entry-language-english')
-//           : ctx.t('bot-entry-language-german'),
-//     }),
-//   );
-// });
 
 bot.callbackQuery('submit_event', async (ctx) => {
   await ctx.answerCallbackQuery();
@@ -261,6 +221,7 @@ bot.callbackQuery('cancel_submit', async (ctx) => {
   await ctx.answerCallbackQuery();
   await ctx.replyWithMarkdownV2(
     ctx.t('bot-entry-submit-cancelled', { icon: ICONS.reject }),
+    { link_preview_options: disableLinkPreview },
   );
 });
 
@@ -278,6 +239,7 @@ bot.callbackQuery('cancel_edit', async (ctx) => {
   await ctx.answerCallbackQuery();
   await ctx.replyWithMarkdownV2(
     ctx.t('bot-entry-edit-cancelled', { icon: ICONS.reject }),
+    { link_preview_options: disableLinkPreview },
   );
 });
 
@@ -290,12 +252,15 @@ bot.callbackQuery('cancel_delete', async (ctx) => {
   await ctx.answerCallbackQuery();
   await ctx.replyWithMarkdownV2(
     ctx.t('bot-entry-delete-cancelled', { icon: ICONS.reject }),
+    { link_preview_options: disableLinkPreview },
   );
 });
 
 bot.callbackQuery('cancel_conversation', async (ctx) => {
   await ctx.answerCallbackQuery();
-  await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'));
+  await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'), {
+    link_preview_options: disableLinkPreview,
+  });
   console.log('Conversation cancelled');
   return;
 });
@@ -309,17 +274,6 @@ bot.callbackQuery(/reject_(edit_)?(.+)/, async (ctx) => {
   const eventId = ctx.match[2];
   await handleEventRejection(eventId, ctx);
 });
-
-// Debugging
-// Chat-ID
-// bot.on('message', (ctx) => {
-//   console.log('Chat-ID:', ctx.chat.id);
-// });
-
-// Channel Post
-// bot.on('channel_post', (ctx) => {
-//   console.log('Channel Post Chat-ID:', ctx.chat.id);
-// });
 
 export function startBot() {
   run(bot, {

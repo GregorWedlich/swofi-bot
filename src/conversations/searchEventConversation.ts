@@ -13,6 +13,10 @@ import { escapeMarkdownV2Text } from '../utils/markdownUtils';
 
 const locale = getLocaleUtil();
 
+const disableLinkPreview = {
+  is_disabled: true,
+};
+
 export async function searchEventConversation(
   conversation: Conversation<MyContext>,
   ctx: MyContext,
@@ -26,6 +30,7 @@ export async function searchEventConversation(
     console.error('Error searching for events:', error);
     await ctx.replyWithMarkdownV2(
       ctx.t('msg-search-event-error', { icon: ICONS.reject }),
+      { link_preview_options: disableLinkPreview },
     );
   }
 }
@@ -60,6 +65,7 @@ async function showSearchOptions(
       ctx.t('msg-search-event-title', { icon: ICONS.search }),
       {
         reply_markup: searchKeyboard,
+        link_preview_options: disableLinkPreview,
       },
     );
 
@@ -78,6 +84,7 @@ async function showSearchOptions(
     if (response.callbackQuery.data === 'search_exit') {
       await ctx.replyWithMarkdownV2(
         ctx.t('msg-search-event-exit', { icon: ICONS.reject }),
+        { link_preview_options: disableLinkPreview },
       );
       return null;
     }
@@ -87,6 +94,7 @@ async function showSearchOptions(
     console.error('Error displaying search options:', error);
     await ctx.replyWithMarkdownV2(
       ctx.t('msg-search-event-options-error', { icon: ICONS.reject }),
+      { link_preview_options: disableLinkPreview },
     );
     return null;
   }
@@ -111,6 +119,7 @@ async function handleSearchChoice(
       default:
         await ctx.replyWithMarkdownV2(
           ctx.t('msg-search-event-invalid-choice', { icon: ICONS.reject }),
+          { link_preview_options: disableLinkPreview },
         );
         break;
     }
@@ -118,6 +127,7 @@ async function handleSearchChoice(
     console.error('Error processing search choice:', error);
     await ctx.replyWithMarkdownV2(
       ctx.t('msg-search-event-choice-error', { icon: ICONS.reject }),
+      { link_preview_options: disableLinkPreview },
     );
   }
 }
@@ -136,6 +146,7 @@ async function handleTodaySearch(ctx: MyContext) {
     console.error('Error searching for todays events:', error);
     await ctx.replyWithMarkdownV2(
       ctx.t('msg-search-event-today-error', { icon: ICONS.reject }),
+      { link_preview_options: disableLinkPreview },
     );
   }
 }
@@ -154,6 +165,7 @@ async function handleTomorrowSearch(ctx: MyContext) {
     console.error("Error searching for tomorrow's events:", error);
     await ctx.replyWithMarkdownV2(
       ctx.t('msg-search-event-tomorrow-error', { icon: ICONS.reject }),
+      { link_preview_options: disableLinkPreview },
     );
   }
 }
@@ -179,6 +191,7 @@ async function handleSpecificDateSearch(
       }),
       {
         reply_markup: dateKeyboard,
+        link_preview_options: disableLinkPreview,
       },
     );
 
@@ -190,6 +203,7 @@ async function handleSpecificDateSearch(
     if (dateResponse.callbackQuery?.data === 'cancel_date_search') {
       await ctx.replyWithMarkdownV2(
         ctx.t('msg-search-event-cancel', { icon: ICONS.reject }),
+        { link_preview_options: disableLinkPreview },
       );
       return;
     }
@@ -211,6 +225,7 @@ async function handleSpecificDateSearch(
           icon: ICONS.reject,
           format: escapeMarkdownV2Text(getDateOnlyFormat()),
         }),
+        { link_preview_options: disableLinkPreview },
       );
       continue;
     }

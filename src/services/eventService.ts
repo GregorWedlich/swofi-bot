@@ -17,6 +17,10 @@ import { ICONS } from '../utils/iconUtils';
 import { escapeMarkdownV2Text } from '../utils/markdownUtils';
 import { formatEvent } from '../utils/eventMessageFormatter';
 
+const disableLinkPreview = {
+  is_disabled: true,
+};
+
 export async function notifyAdminsOfEvent(
   ctx: MyContext,
   event: Event,
@@ -67,6 +71,7 @@ export async function notifyAdminsOfEvent(
         await bot.api.sendMessage(getAdminChatId(), messageText, {
           parse_mode: 'MarkdownV2',
           reply_markup: approveKeyboard,
+          link_preview_options: disableLinkPreview,
         });
       } catch (error) {
         console.error(
@@ -153,6 +158,7 @@ export async function handleEventApproval(eventId: string, ctx: MyContext) {
 
         await bot.api.sendMessage(getAdminChatId(), message, {
           parse_mode: 'MarkdownV2',
+          link_preview_options: disableLinkPreview,
         });
       } catch (error) {
         console.error(
@@ -211,12 +217,13 @@ export async function handleEventDeletion(eventId: string, ctx: MyContext) {
     const event = await findEventById(eventId);
 
     if (!event) {
-      await ctx.replyWithMarkdownV2(ctx.t('msg-service-event-not-found'));
+      await ctx.replyWithMarkdownV2(ctx.t('msg-service-event-not-found'), {
+        link_preview_options: disableLinkPreview,
+      });
       console.warn(`Event not found for deletion: ID=${eventId}`);
       return false;
     }
 
-    // Lösche die Nachricht im Kanal, falls vorhanden
     if (event.messageId) {
       try {
         await bot.api.deleteMessage(
@@ -227,7 +234,6 @@ export async function handleEventDeletion(eventId: string, ctx: MyContext) {
           `Message deleted from channel for Event ID=${eventId}, messageId=${event.messageId}`,
         );
       } catch (error) {
-        // Fehler beim Löschen der Nachricht ignorieren oder loggen, aber den Vorgang fortsetzen
         console.error(
           `Error deleting message from channel for Event ID=${eventId}, messageId=${event.messageId}:`,
           error,
@@ -235,7 +241,6 @@ export async function handleEventDeletion(eventId: string, ctx: MyContext) {
       }
     }
 
-    // Lösche das Event aus der Datenbank
     await deleteEventById(eventId);
     console.log(`Event deleted from database: ID=${eventId}`);
 
@@ -244,12 +249,14 @@ export async function handleEventDeletion(eventId: string, ctx: MyContext) {
         icon: ICONS.approve,
         eventTitle: escapeMarkdownV2Text(event.title),
       }),
+      { link_preview_options: disableLinkPreview },
     );
     return true;
   } catch (error) {
     console.error(`Error deleting event ID=${eventId}:`, error);
     await ctx.replyWithMarkdownV2(
       ctx.t('msg-service-event-deletion-error', { icon: ICONS.reject }),
+      { link_preview_options: disableLinkPreview },
     );
     return false;
   }
@@ -297,6 +304,7 @@ export async function postEventToChannel(
           messageText,
           {
             parse_mode: 'MarkdownV2',
+            link_preview_options: disableLinkPreview,
           },
         );
         console.log(
@@ -378,6 +386,7 @@ export async function updateEventInChannel(
             messageText,
             {
               parse_mode: 'MarkdownV2',
+              link_preview_options: disableLinkPreview,
             },
           );
           console.log(`Message edited with ID: ${event.messageId}`);
@@ -393,6 +402,7 @@ export async function updateEventInChannel(
               messageText,
               {
                 parse_mode: 'MarkdownV2',
+                link_preview_options: disableLinkPreview,
               },
             );
             console.log(
@@ -418,6 +428,7 @@ export async function updateEventInChannel(
             messageText,
             {
               parse_mode: 'MarkdownV2',
+              link_preview_options: disableLinkPreview,
             },
           );
           console.log(
@@ -456,10 +467,16 @@ export async function sendSearchToUser(
           ctx.t('msg-service-search-no-events', {
             dateText: escapeMarkdownV2Text(dateText),
           }),
+          {
+            link_preview_options: disableLinkPreview,
+          },
         );
       } catch (error) {
         await ctx.reply(
           ctx.t('msg-service-search-error', { icon: ICONS.reject }),
+          {
+            link_preview_options: disableLinkPreview,
+          },
         );
         console.error(`Error sending message to chatId=${chatId}:`, error);
       }
@@ -491,6 +508,9 @@ export async function sendSearchToUser(
                 icon: ICONS.reject,
                 eventId: event.id,
               }),
+              {
+                link_preview_options: disableLinkPreview,
+              },
             );
             console.error(
               `Error sending photo to user for Event ID=${event.id}:`,
@@ -501,6 +521,7 @@ export async function sendSearchToUser(
           try {
             await bot.api.sendMessage(chatId, message, {
               parse_mode: 'MarkdownV2',
+              link_preview_options: disableLinkPreview,
             });
             console.log(`Message sent to user for Event ID=${event.id}`);
           } catch (error) {
@@ -509,6 +530,9 @@ export async function sendSearchToUser(
                 icon: ICONS.reject,
                 eventId: event.id,
               }),
+              {
+                link_preview_options: disableLinkPreview,
+              },
             );
             console.error(
               `Error sending message to user for Event ID=${event.id}:`,
@@ -522,6 +546,9 @@ export async function sendSearchToUser(
             icon: ICONS.reject,
             eventId: event.id,
           }),
+          {
+            link_preview_options: disableLinkPreview,
+          },
         );
         console.error(`Error processing event ID=${event.id}:`, error);
       }

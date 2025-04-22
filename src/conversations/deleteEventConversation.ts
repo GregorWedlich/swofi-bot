@@ -9,6 +9,10 @@ import { MyContext } from '../types/context';
 import { ICONS } from '../utils/iconUtils';
 import { formatEvent } from '../utils/eventMessageFormatter';
 
+const disableLinkPreview = {
+  is_disabled: true,
+};
+
 export async function deleteEventConversation(
   conversation: Conversation<MyContext>,
   ctx: MyContext,
@@ -17,7 +21,9 @@ export async function deleteEventConversation(
     const userId = ctx.from?.id;
 
     if (!userId) {
-      await ctx.replyWithMarkdownV2(ctx.t('msg-delete-event-user-not-found'));
+      await ctx.replyWithMarkdownV2(ctx.t('msg-delete-event-user-not-found'), {
+        link_preview_options: disableLinkPreview,
+      });
       return;
     }
 
@@ -26,28 +32,33 @@ export async function deleteEventConversation(
     if (events.length === 0) {
       await ctx.replyWithMarkdownV2(
         ctx.t('msg-delete-event-no-approved-events-found'),
+        { link_preview_options: disableLinkPreview },
       );
       return;
     }
 
     const eventToDelete = await selectEventToDelete(conversation, ctx, events);
     if (!eventToDelete) {
-      await ctx.replyWithMarkdownV2(ctx.t('msg-delete-event-cancelled'));
+      await ctx.replyWithMarkdownV2(ctx.t('msg-delete-event-cancelled'), {
+        link_preview_options: disableLinkPreview,
+      });
       return;
     }
 
     const confirmed = await confirmDeletion(conversation, ctx, eventToDelete);
     if (!confirmed) {
-      await ctx.replyWithMarkdownV2(ctx.t('msg-delete-event-cancelled'));
+      await ctx.replyWithMarkdownV2(ctx.t('msg-delete-event-cancelled'), {
+        link_preview_options: disableLinkPreview,
+      });
       return;
     }
 
-    // Event löschen
     await handleEventDeletion(eventToDelete.id, ctx);
   } catch (error) {
     console.error('Error during delete event conversation:', error);
     await ctx.replyWithMarkdownV2(
       ctx.t('msg-delete-event-error', { icon: ICONS.reject }),
+      { link_preview_options: disableLinkPreview },
     );
   }
 }
@@ -73,6 +84,7 @@ async function selectEventToDelete(
 
   await ctx.replyWithMarkdownV2(ctx.t('msg-delete-event-select-event'), {
     reply_markup: keyboard,
+    link_preview_options: disableLinkPreview,
   });
 
   const response = await conversation.waitForCallbackQuery([
@@ -92,12 +104,15 @@ async function selectEventToDelete(
   const event = await findEventById(eventId);
 
   if (!event) {
-    await ctx.replyWithMarkdownV2(ctx.t('msg-delete-event-not-found-error'));
+    await ctx.replyWithMarkdownV2(ctx.t('msg-delete-event-not-found-error'), {
+      link_preview_options: disableLinkPreview,
+    });
     return null;
   }
 
-  // Zeige Event-Details zur Bestätigung
-  await ctx.replyWithMarkdownV2(ctx.t('msg-delete-event-selected-details'));
+  await ctx.replyWithMarkdownV2(ctx.t('msg-delete-event-selected-details'), {
+    link_preview_options: disableLinkPreview,
+  });
   const messageText = formatEvent(ctx, event, { context: 'user' });
 
   if (event.imageBase64) {
@@ -113,10 +128,16 @@ async function selectEventToDelete(
         `Error sending photo for event ID=${event.id} during deletion selection:`,
         error,
       );
-      await ctx.replyWithMarkdownV2(messageText, { parse_mode: 'MarkdownV2' }); // Fallback auf Text
+      await ctx.replyWithMarkdownV2(messageText, {
+        parse_mode: 'MarkdownV2',
+        link_preview_options: disableLinkPreview,
+      });
     }
   } else {
-    await ctx.replyWithMarkdownV2(messageText, { parse_mode: 'MarkdownV2' });
+    await ctx.replyWithMarkdownV2(messageText, {
+      parse_mode: 'MarkdownV2',
+      link_preview_options: disableLinkPreview,
+    });
   }
 
   return event;
@@ -143,6 +164,7 @@ async function confirmDeletion(
     }),
     {
       reply_markup: confirmationKeyboard,
+      link_preview_options: disableLinkPreview,
     },
   );
 
