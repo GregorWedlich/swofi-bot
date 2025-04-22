@@ -7,7 +7,7 @@
   </h2>
 </p>
 
-⚠️ **BETA VERSION - v0.9.4**
+⚠️ **BETA VERSION - v0.9.5**
 
 A Telegram bot designed to help you discover and share dance events, parties, and cultural happenings. The name “Swofi” is derived from the German slang term “Schwofen,” which means dancing the night away 🤣
 
