@@ -30,6 +30,10 @@ import { escapeMarkdownV2Text } from '../utils/markdownUtils';
 
 const locale = getLocaleUtil();
 
+const disableLinkPreview = {
+  is_disabled: true,
+};
+
 export async function editEventConversation(
   conversation: Conversation<MyContext>,
   ctx: MyContext,
@@ -38,7 +42,9 @@ export async function editEventConversation(
     const userId = ctx.from?.id;
 
     if (!userId) {
-      await ctx.replyWithMarkdownV2(ctx.t('msg-edit-event-user-not-found'));
+      await ctx.replyWithMarkdownV2(ctx.t('msg-edit-event-user-not-found'), {
+        link_preview_options: disableLinkPreview,
+      });
       return;
     }
 
@@ -47,6 +53,7 @@ export async function editEventConversation(
     if (events.length === 0) {
       await ctx.replyWithMarkdownV2(
         ctx.t('msg-edit-event-no-approved-events-found'),
+        { link_preview_options: disableLinkPreview },
       );
       return;
     }
@@ -57,7 +64,10 @@ export async function editEventConversation(
     });
 
     if (availableEvents.length === 0) {
-      await ctx.replyWithMarkdownV2(ctx.t('msg-edit-event-edit-limit-reached'));
+      await ctx.replyWithMarkdownV2(
+        ctx.t('msg-edit-event-edit-limit-reached'),
+        { link_preview_options: disableLinkPreview },
+      );
       return;
     }
 
@@ -128,6 +138,7 @@ export async function editEventConversation(
     console.error('Error while editing the event:', error);
     await ctx.replyWithMarkdownV2(
       ctx.t('msg-edit-event-error', { icon: ICONS.reject }),
+      { link_preview_options: disableLinkPreview },
     );
   }
 }
@@ -166,6 +177,7 @@ async function selectEvent(
 
   await ctx.replyWithMarkdownV2(ctx.t('msg-edit-event-select-event-to-edit'), {
     reply_markup: keyboard,
+    link_preview_options: disableLinkPreview,
   });
 
   const eventSelection = await conversation.waitForCallbackQuery(
@@ -182,16 +194,20 @@ async function selectEvent(
       ctx.t('msg-edit-event-remaining-edits', {
         remainingEdits,
       }),
+      { link_preview_options: disableLinkPreview },
     );
     if (remainingEdits <= 0) {
       await ctx.replyWithMarkdownV2(
         ctx.t('msg-edit-event-remaining-edits-reached'),
+        { link_preview_options: disableLinkPreview },
       );
       return null;
     }
   }
 
-  await ctx.replyWithMarkdownV2(ctx.t('msg-edit-event-event-data'));
+  await ctx.replyWithMarkdownV2(ctx.t('msg-edit-event-event-data'), {
+    link_preview_options: disableLinkPreview,
+  });
 
   const messageText = formatEvent(ctx, event, {
     context: 'user',
@@ -209,10 +225,13 @@ async function selectEvent(
       console.error(`Error while sending image ID=${event.id}:`, error);
       await ctx.replyWithMarkdownV2(
         ctx.t('msg-edit-event-summary-error-by-sending-image'),
+        { link_preview_options: disableLinkPreview },
       );
     }
   } else {
-    await ctx.replyWithMarkdownV2(messageText);
+    await ctx.replyWithMarkdownV2(messageText, {
+      link_preview_options: disableLinkPreview,
+    });
   }
 
   return event;
@@ -235,18 +254,23 @@ async function collectEventTitle(
             ctx.t('msg-edit-event-btn-cancel', { icon: ICONS.reject }),
             'cancel_conversation',
           ),
+        link_preview_options: disableLinkPreview,
       });
       const response = await conversation.wait();
 
       if (response.callbackQuery?.data === 'cancel_conversation') {
         await response.answerCallbackQuery();
-        await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'));
+        await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'), {
+          link_preview_options: disableLinkPreview,
+        });
         return false;
       }
 
       if (response.callbackQuery?.data === 'skip_question') {
         await response.answerCallbackQuery();
-        await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-skipped'));
+        await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-skipped'), {
+          link_preview_options: disableLinkPreview,
+        });
         return true;
       }
 
@@ -256,6 +280,7 @@ async function collectEventTitle(
             ctx.t('msg-edit-event-new-title-too-long', {
               icon: ICONS.reject,
             }),
+            { link_preview_options: disableLinkPreview },
           );
           continue;
         } else {
@@ -267,6 +292,7 @@ async function collectEventTitle(
       console.error('Error while collecting the title:', error);
       await ctx.replyWithMarkdownV2(
         ctx.t('msg-edit-event-title-error', { icon: ICONS.reject }),
+        { link_preview_options: disableLinkPreview },
       );
     }
   }
@@ -290,18 +316,23 @@ async function collectEventDescription(
             ctx.t('msg-edit-event-btn-cancel', { icon: ICONS.reject }),
             'cancel_conversation',
           ),
+        link_preview_options: disableLinkPreview,
       });
       const response = await conversation.wait();
 
       if (response.callbackQuery?.data === 'cancel_conversation') {
         await response.answerCallbackQuery();
-        await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'));
+        await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'), {
+          link_preview_options: disableLinkPreview,
+        });
         return false;
       }
 
       if (response.callbackQuery?.data === 'skip_question') {
         await response.answerCallbackQuery();
-        await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-skipped'));
+        await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-skipped'), {
+          link_preview_options: disableLinkPreview,
+        });
         return true;
       }
 
@@ -311,6 +342,7 @@ async function collectEventDescription(
             ctx.t('msg-edit-event-new-description-too-long', {
               icon: ICONS.reject,
             }),
+            { link_preview_options: disableLinkPreview },
           );
           continue;
         } else {
@@ -322,6 +354,7 @@ async function collectEventDescription(
       console.error('Error while collecting the description:', error);
       await ctx.replyWithMarkdownV2(
         ctx.t('msg-edit-event-description-error', { icon: ICONS.reject }),
+        { link_preview_options: disableLinkPreview },
       );
     }
   }
@@ -345,18 +378,23 @@ async function collectEventLocation(
             ctx.t('msg-edit-event-btn-cancel', { icon: ICONS.reject }),
             'cancel_conversation',
           ),
+        link_preview_options: disableLinkPreview,
       });
       const response = await conversation.wait();
 
       if (response.callbackQuery?.data === 'cancel_conversation') {
         await response.answerCallbackQuery();
-        await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'));
+        await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'), {
+          link_preview_options: disableLinkPreview,
+        });
         return false;
       }
 
       if (response.callbackQuery?.data === 'skip_question') {
         await response.answerCallbackQuery();
-        await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-skipped'));
+        await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-skipped'), {
+          link_preview_options: disableLinkPreview,
+        });
         return true;
       }
 
@@ -366,6 +404,7 @@ async function collectEventLocation(
             ctx.t('msg-edit-event-new-location-to-short', {
               icon: ICONS.reject,
             }),
+            { link_preview_options: disableLinkPreview },
           );
           continue;
         } else {
@@ -377,6 +416,7 @@ async function collectEventLocation(
       console.error('Error while collecting the location:', error);
       await ctx.replyWithMarkdownV2(
         ctx.t('msg-edit-event-location-error', { icon: ICONS.reject }),
+        { link_preview_options: disableLinkPreview },
       );
     }
   }
@@ -410,19 +450,24 @@ async function collectEventDates(
                 ctx.t('msg-edit-event-btn-cancel', { icon: ICONS.reject }),
                 'cancel_conversation',
               ),
+            link_preview_options: disableLinkPreview,
           },
         );
         const entryResponse = await conversation.wait();
 
         if (entryResponse.callbackQuery?.data === 'cancel_conversation') {
           await entryResponse.answerCallbackQuery();
-          await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'));
+          await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'), {
+            link_preview_options: disableLinkPreview,
+          });
           return false;
         }
 
         if (entryResponse.callbackQuery?.data === 'skip_question') {
           await entryResponse.answerCallbackQuery();
-          await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-skipped'));
+          await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-skipped'), {
+            link_preview_options: disableLinkPreview,
+          });
           return true;
         }
 
@@ -440,6 +485,7 @@ async function collectEventDates(
                 icon: ICONS.reject,
                 date: escapeMarkdownV2Text(getDateFormat()),
               }),
+              { link_preview_options: disableLinkPreview },
             );
             continue;
           }
@@ -449,6 +495,7 @@ async function collectEventDates(
               ctx.t('msg-edit-event-new-entry-date-future', {
                 icon: ICONS.reject,
               }),
+              { link_preview_options: disableLinkPreview },
             );
             continue;
           }
@@ -477,19 +524,24 @@ async function collectEventDates(
                 ctx.t('msg-edit-event-btn-cancel', { icon: ICONS.reject }),
                 'cancel_conversation',
               ),
+            link_preview_options: disableLinkPreview,
           },
         );
         const startResponse = await conversation.wait();
 
         if (startResponse.callbackQuery?.data === 'cancel_conversation') {
           await startResponse.answerCallbackQuery();
-          await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'));
+          await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'), {
+            link_preview_options: disableLinkPreview,
+          });
           return false;
         }
 
         if (startResponse.callbackQuery?.data === 'skip_question') {
           await startResponse.answerCallbackQuery();
-          await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-skipped'));
+          await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-skipped'), {
+            link_preview_options: disableLinkPreview,
+          });
           return true;
         }
 
@@ -507,6 +559,7 @@ async function collectEventDates(
                 icon: ICONS.reject,
                 date: escapeMarkdownV2Text(getDateFormat()),
               }),
+              { link_preview_options: disableLinkPreview },
             );
             continue;
           }
@@ -516,6 +569,7 @@ async function collectEventDates(
               ctx.t('msg-edit-event-new-start-date-future', {
                 icon: ICONS.reject,
               }),
+              { link_preview_options: disableLinkPreview },
             );
             continue;
           }
@@ -530,6 +584,7 @@ async function collectEventDates(
               ctx.t('msg-edit-event-new-start-after-entry', {
                 icon: ICONS.reject,
               }),
+              { link_preview_options: disableLinkPreview },
             );
             continue;
           }
@@ -553,19 +608,24 @@ async function collectEventDates(
                 ctx.t('msg-edit-event-btn-cancel', { icon: ICONS.reject }),
                 'cancel_conversation',
               ),
+            link_preview_options: disableLinkPreview,
           },
         );
         const endResponse = await conversation.wait();
 
         if (endResponse.callbackQuery?.data === 'cancel_conversation') {
           await endResponse.answerCallbackQuery();
-          await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'));
+          await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'), {
+            link_preview_options: disableLinkPreview,
+          });
           return false;
         }
 
         if (endResponse.callbackQuery?.data === 'skip_question') {
           await endResponse.answerCallbackQuery();
-          await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-skipped'));
+          await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-skipped'), {
+            link_preview_options: disableLinkPreview,
+          });
           return true;
         }
 
@@ -583,6 +643,7 @@ async function collectEventDates(
                 icon: ICONS.reject,
                 date: escapeMarkdownV2Text(getDateFormat()),
               }),
+              { link_preview_options: disableLinkPreview },
             );
             continue;
           }
@@ -592,6 +653,7 @@ async function collectEventDates(
               ctx.t('msg-edit-event-new-end-date-future', {
                 icon: ICONS.reject,
               }),
+              { link_preview_options: disableLinkPreview },
             );
             continue;
           }
@@ -603,6 +665,7 @@ async function collectEventDates(
               ctx.t('msg-edit-event-new-end-after-start', {
                 icon: ICONS.reject,
               }),
+              { link_preview_options: disableLinkPreview },
             );
             continue;
           }
@@ -650,6 +713,7 @@ async function collectEventDates(
               }),
               'dates_reset',
             ),
+          link_preview_options: disableLinkPreview,
         },
       );
 
@@ -675,6 +739,7 @@ async function collectEventDates(
       console.error('Error while collecting date information:', error);
       await ctx.replyWithMarkdownV2(
         ctx.t('msg-edit-event-dates-error', { icon: ICONS.reject }),
+        { link_preview_options: disableLinkPreview },
       );
     }
   }
@@ -794,6 +859,7 @@ async function collectEventCategories(
         ],
       ],
     },
+    link_preview_options: disableLinkPreview,
   });
 
   while (!categorySelectionComplete) {
@@ -835,6 +901,7 @@ async function collectEventCategories(
         ctx.t('msg-edit-event-output-selected-cats', {
           selectedCategories: selectedCategories.join(', '),
         }),
+        { link_preview_options: disableLinkPreview },
       );
     }
   }
@@ -856,18 +923,23 @@ async function collectEventLinks(
         ctx.t('msg-edit-event-btn-cancel', { icon: ICONS.reject }),
         'cancel_conversation',
       ),
+    link_preview_options: disableLinkPreview,
   });
   const linksResponse = await conversation.wait();
 
   if (linksResponse.callbackQuery?.data === 'cancel_conversation') {
     await linksResponse.answerCallbackQuery();
-    await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'));
+    await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'), {
+      link_preview_options: disableLinkPreview,
+    });
     return false;
   }
 
   if (linksResponse.callbackQuery?.data === 'skip_question') {
     await linksResponse.answerCallbackQuery();
-    await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-skipped'));
+    await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-skipped'), {
+      link_preview_options: disableLinkPreview,
+    });
     return true;
   }
 
@@ -902,19 +974,24 @@ async function collectEventGroupLink(
               ctx.t('msg-edit-event-btn-cancel', { icon: ICONS.reject }),
               'cancel_conversation',
             ),
+          link_preview_options: disableLinkPreview,
         },
       );
       const response = await conversation.wait();
 
       if (response.callbackQuery?.data === 'cancel_conversation') {
         await response.answerCallbackQuery();
-        await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'));
+        await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'), {
+          link_preview_options: disableLinkPreview,
+        });
         return false;
       }
 
       if (response.callbackQuery?.data === 'skip_question') {
         await response.answerCallbackQuery();
-        await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-skipped'));
+        await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-skipped'), {
+          link_preview_options: disableLinkPreview,
+        });
         return true;
       }
 
@@ -926,6 +1003,7 @@ async function collectEventGroupLink(
       console.error('Error while collecting the group link:', error);
       await ctx.replyWithMarkdownV2(
         ctx.t('msg-edit-event-group-link-error', { icon: ICONS.reject }),
+        { link_preview_options: disableLinkPreview },
       );
     }
   }
@@ -951,18 +1029,23 @@ async function collectEventImage(
             ctx.t('msg-edit-event-btn-cancel', { icon: ICONS.reject }),
             'cancel_conversation',
           ),
+        link_preview_options: disableLinkPreview,
       });
       const imageResponse = await conversation.wait();
 
       if (imageResponse.callbackQuery?.data === 'cancel_conversation') {
         await imageResponse.answerCallbackQuery();
-        await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'));
+        await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'), {
+          link_preview_options: disableLinkPreview,
+        });
         return false;
       }
 
       if (imageResponse.callbackQuery?.data === 'skip_question') {
         await imageResponse.answerCallbackQuery();
-        await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-skipped'));
+        await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-skipped'), {
+          link_preview_options: disableLinkPreview,
+        });
         return true;
       }
 
@@ -978,6 +1061,7 @@ async function collectEventImage(
         if (!response.ok) {
           await ctx.replyWithMarkdownV2(
             ctx.t('msg-edit-event-image-download-error'),
+            { link_preview_options: disableLinkPreview },
           );
           continue;
         }
@@ -992,12 +1076,14 @@ async function collectEventImage(
       } else {
         await ctx.replyWithMarkdownV2(
           ctx.t('msg-edit-event-image-invalid-input'),
+          { link_preview_options: disableLinkPreview },
         );
       }
     } catch (error) {
       console.error('Error while collecting the image:', error);
       await ctx.replyWithMarkdownV2(
         ctx.t('msg-edit-event-image-error', { icon: ICONS.reject }),
+        { link_preview_options: disableLinkPreview },
       );
     }
   }
@@ -1010,26 +1096,9 @@ async function summarizeAndSaveEvent(
   originalEvent: Event,
   updatedEventData: Partial<Event>,
 ) {
-  await ctx.replyWithMarkdownV2(ctx.t('msg-edit-event-changes'));
-
-  // if (originalEvent.imageBase64) {
-  //   try {
-  //     const imageBuffer = Buffer.from(originalEvent.imageBase64, 'base64');
-  //     const stream = Readable.from(imageBuffer);
-  //     await ctx.replyWithPhoto(new InputFile(stream), {
-  //       caption: ctx.t( 'msg-edit-event-summary-event-image'),
-  //
-  //     });
-  //   } catch (error) {
-  //     console.error(
-  //       `Error by sending image for Event ID=${originalEvent.id}:`,
-  //       error,
-  //     );
-  //     await ctx.replyWithMarkdownV2(
-  //       ctx.t( 'msg-edit-event-summary-error-by-sending-image'),
-  //     );
-  //   }
-  // }
+  await ctx.replyWithMarkdownV2(ctx.t('msg-edit-event-changes'), {
+    link_preview_options: disableLinkPreview,
+  });
 
   const updatedMessageText = formatEvent(ctx, updatedEventData as Event, {
     context: 'user',
@@ -1050,10 +1119,13 @@ async function summarizeAndSaveEvent(
       );
       await ctx.replyWithMarkdownV2(
         ctx.t('msg-edit-event-summary-error-by-sending-image'),
+        { link_preview_options: disableLinkPreview },
       );
     }
   } else {
-    await ctx.replyWithMarkdownV2(updatedMessageText);
+    await ctx.replyWithMarkdownV2(updatedMessageText, {
+      link_preview_options: disableLinkPreview,
+    });
   }
 
   await ctx.replyWithMarkdownV2(ctx.t('msg-edit-event-summary-save-changes'), {
@@ -1066,6 +1138,7 @@ async function summarizeAndSaveEvent(
         ctx.t('msg-edit-event-field-no', { icon: ICONS.reject }),
         'discard_changes',
       ),
+    link_preview_options: disableLinkPreview,
   });
 
   const saveChanges = await conversation.waitForCallbackQuery([
@@ -1085,13 +1158,19 @@ async function summarizeAndSaveEvent(
 
     if (getEventsRequireApproval()) {
       await sendEventToAdmins(ctx, updatedEventFromDb, true);
-      await ctx.replyWithMarkdownV2(ctx.t('msg-edit-event-save-review'));
+      await ctx.replyWithMarkdownV2(ctx.t('msg-edit-event-save-review'), {
+        link_preview_options: disableLinkPreview,
+      });
     } else {
       await publishEvent(ctx, updatedEventFromDb);
-      await ctx.replyWithMarkdownV2(ctx.t('msg-edit-event-save'));
+      await ctx.replyWithMarkdownV2(ctx.t('msg-edit-event-save'), {
+        link_preview_options: disableLinkPreview,
+      });
     }
   } else {
-    await ctx.replyWithMarkdownV2(ctx.t('msg-edit-event-changes-reject'));
+    await ctx.replyWithMarkdownV2(ctx.t('msg-edit-event-changes-reject'), {
+      link_preview_options: disableLinkPreview,
+    });
   }
 }
 
@@ -1120,6 +1199,7 @@ async function askAndCollectField(
           ctx.t('msg-edit-event-field-no', { icon: ICONS.reject }),
           `skip_${fieldName}`,
         ),
+      link_preview_options: disableLinkPreview,
     },
   );
 

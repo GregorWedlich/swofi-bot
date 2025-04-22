@@ -22,6 +22,10 @@ import { escapeMarkdownV2Text } from '../utils/markdownUtils';
 
 const locale = getLocaleUtil();
 
+const disableLinkPreview = {
+  is_disabled: true,
+};
+
 export async function submitEventConversation(
   conversation: Conversation<MyContext>,
   ctx: MyContext,
@@ -119,6 +123,7 @@ async function collectEventTitle(
         ctx.t('msg-submit-event-title', { icon: ICONS.event }),
         {
           reply_markup: createCancelKeyboard(ctx),
+          link_preview_options: disableLinkPreview,
         },
       );
 
@@ -126,7 +131,12 @@ async function collectEventTitle(
 
       if (response.callbackQuery?.data === 'cancel_conversation') {
         await response.answerCallbackQuery();
-        await response.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'));
+        await response.replyWithMarkdownV2(
+          ctx.t('msg-conversation-cancelled'),
+          {
+            link_preview_options: disableLinkPreview,
+          },
+        );
         return false;
       }
 
@@ -136,6 +146,9 @@ async function collectEventTitle(
             ctx.t('msg-submit-event-title-too-long', {
               icon: ICONS.reject,
             }),
+            {
+              link_preview_options: disableLinkPreview,
+            },
           );
           continue;
         }
@@ -146,6 +159,9 @@ async function collectEventTitle(
       console.error('Error capturing the title:', error);
       await ctx.replyWithMarkdownV2(
         ctx.t('msg-submit-event-title-error', { icon: ICONS.reject }),
+        {
+          link_preview_options: disableLinkPreview,
+        },
       );
     }
   }
@@ -162,6 +178,7 @@ async function collectEventDescription(
         ctx.t('msg-submit-event-description', { icon: ICONS.pensil }),
         {
           reply_markup: createCancelKeyboard(ctx),
+          link_preview_options: disableLinkPreview,
         },
       );
 
@@ -169,7 +186,12 @@ async function collectEventDescription(
 
       if (response.callbackQuery?.data === 'cancel_conversation') {
         await response.answerCallbackQuery();
-        await response.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'));
+        await response.replyWithMarkdownV2(
+          ctx.t('msg-conversation-cancelled'),
+          {
+            link_preview_options: disableLinkPreview,
+          },
+        );
         return false;
       }
 
@@ -179,6 +201,9 @@ async function collectEventDescription(
             ctx.t('msg-submit-event-description-too-long', {
               icon: ICONS.reject,
             }),
+            {
+              link_preview_options: disableLinkPreview,
+            },
           );
           continue;
         }
@@ -189,6 +214,9 @@ async function collectEventDescription(
       console.error('Error capturing the description:', error);
       await ctx.replyWithMarkdownV2(
         ctx.t('msg-submit-event-description-error', { icon: ICONS.reject }),
+        {
+          link_preview_options: disableLinkPreview,
+        },
       );
     }
   }
@@ -205,6 +233,7 @@ async function collectEventLocation(
         ctx.t('msg-submit-event-location', { icon: ICONS.pensil }),
         {
           reply_markup: createCancelKeyboard(ctx),
+          link_preview_options: disableLinkPreview,
         },
       );
 
@@ -212,7 +241,12 @@ async function collectEventLocation(
 
       if (response.callbackQuery?.data === 'cancel_conversation') {
         await response.answerCallbackQuery();
-        await response.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'));
+        await response.replyWithMarkdownV2(
+          ctx.t('msg-conversation-cancelled'),
+          {
+            link_preview_options: disableLinkPreview,
+          },
+        );
         return false;
       }
 
@@ -223,6 +257,9 @@ async function collectEventLocation(
             ctx.t('msg-submit-event-location-invalid', {
               icon: ICONS.reject,
             }),
+            {
+              link_preview_options: disableLinkPreview,
+            },
           );
           continue;
         }
@@ -233,6 +270,9 @@ async function collectEventLocation(
       console.error('Error capturing the location:', error);
       await ctx.replyWithMarkdownV2(
         ctx.t('msg-submit-event-location-error', { icon: ICONS.reject }),
+        {
+          link_preview_options: disableLinkPreview,
+        },
       );
     }
   }
@@ -258,6 +298,7 @@ async function collectEventDates(
           }),
           {
             reply_markup: createCancelKeyboard(ctx),
+            link_preview_options: disableLinkPreview,
           },
         );
         const entryResponse = await conversation.wait();
@@ -266,6 +307,9 @@ async function collectEventDates(
           await entryResponse.answerCallbackQuery();
           await entryResponse.replyWithMarkdownV2(
             ctx.t('msg-conversation-cancelled'),
+            {
+              link_preview_options: disableLinkPreview,
+            },
           );
           return false;
         }
@@ -285,6 +329,9 @@ async function collectEventDates(
               icon: ICONS.reject,
               date: escapeMarkdownV2Text(getDateFormat()),
             }),
+            {
+              link_preview_options: disableLinkPreview,
+            },
           );
           continue;
         }
@@ -292,6 +339,9 @@ async function collectEventDates(
         if (parsedEntryDateInTimeZone < new Date()) {
           await ctx.replyWithMarkdownV2(
             ctx.t('msg-submit-event-entry-date-future', { icon: ICONS.reject }),
+            {
+              link_preview_options: disableLinkPreview,
+            },
           );
           continue;
         }
@@ -312,6 +362,7 @@ async function collectEventDates(
           }),
           {
             reply_markup: createCancelKeyboard(ctx),
+            link_preview_options: disableLinkPreview,
           },
         );
         const startResponse = await conversation.wait();
@@ -320,6 +371,9 @@ async function collectEventDates(
           await startResponse.answerCallbackQuery();
           await startResponse.replyWithMarkdownV2(
             ctx.t('msg-conversation-cancelled'),
+            {
+              link_preview_options: disableLinkPreview,
+            },
           );
           return false;
         }
@@ -339,6 +393,9 @@ async function collectEventDates(
               icon: ICONS.reject,
               date: escapeMarkdownV2Text(getDateFormat()),
             }),
+            {
+              link_preview_options: disableLinkPreview,
+            },
           );
           continue;
         }
@@ -346,6 +403,9 @@ async function collectEventDates(
         if (parsedStartDateInTimeZone < new Date()) {
           await ctx.replyWithMarkdownV2(
             ctx.t('msg-submit-event-start-date-future', { icon: ICONS.reject }),
+            {
+              link_preview_options: disableLinkPreview,
+            },
           );
           continue;
         }
@@ -360,6 +420,9 @@ async function collectEventDates(
             ctx.t('msg-submit-event-start-date-before-entry', {
               icon: ICONS.reject,
             }),
+            {
+              link_preview_options: disableLinkPreview,
+            },
           );
           parsedStartDate = null;
           continue;
@@ -376,6 +439,7 @@ async function collectEventDates(
           }),
           {
             reply_markup: createCancelKeyboard(ctx),
+            link_preview_options: disableLinkPreview,
           },
         );
 
@@ -385,6 +449,9 @@ async function collectEventDates(
           await endResponse.answerCallbackQuery();
           await endResponse.replyWithMarkdownV2(
             ctx.t('msg-conversation-cancelled'),
+            {
+              link_preview_options: disableLinkPreview,
+            },
           );
           return false;
         }
@@ -404,6 +471,9 @@ async function collectEventDates(
               icon: ICONS.reject,
               date: escapeMarkdownV2Text(getDateFormat()),
             }),
+            {
+              link_preview_options: disableLinkPreview,
+            },
           );
           continue;
         }
@@ -411,6 +481,9 @@ async function collectEventDates(
         if (parsedEndDateInTimeZone < new Date()) {
           await ctx.replyWithMarkdownV2(
             ctx.t('msg-submit-event-end-date-future', { icon: ICONS.reject }),
+            {
+              link_preview_options: disableLinkPreview,
+            },
           );
           continue;
         }
@@ -422,6 +495,9 @@ async function collectEventDates(
             ctx.t('msg-submit-event-end-date-before-start', {
               icon: ICONS.reject,
             }),
+            {
+              link_preview_options: disableLinkPreview,
+            },
           );
           parsedEndDate = null;
           continue;
@@ -476,6 +552,7 @@ async function collectEventDates(
               ],
             ],
           },
+          link_preview_options: disableLinkPreview,
         },
       );
 
@@ -501,6 +578,9 @@ async function collectEventDates(
       console.error('Error capturing the dates:', error);
       await ctx.replyWithMarkdownV2(
         ctx.t('msg-submit-event-date-error', { icon: ICONS.reject }),
+        {
+          link_preview_options: disableLinkPreview,
+        },
       );
     }
   }
@@ -631,6 +711,7 @@ async function collectEventCategories(
                 ],
               ],
             },
+            link_preview_options: disableLinkPreview,
           },
         );
       }
@@ -641,7 +722,9 @@ async function collectEventCategories(
 
       if (response.callbackQuery.data === 'cancel_conversation') {
         await response.answerCallbackQuery();
-        await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'));
+        await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'), {
+          link_preview_options: disableLinkPreview,
+        });
         return false;
       }
 
@@ -666,6 +749,9 @@ async function collectEventCategories(
         );
         await ctx.replyWithMarkdownV2(
           ctx.t('msg-submit-event-category-reset', { icon: ICONS.reset }),
+          {
+            link_preview_options: disableLinkPreview,
+          },
         );
       } else {
         if (!selectedCategories.includes(selection)) {
@@ -681,6 +767,9 @@ async function collectEventCategories(
                 icon: ICONS.reject,
                 max: getMaxCategories(),
               }),
+              {
+                link_preview_options: disableLinkPreview,
+              },
             );
             continue;
           }
@@ -701,12 +790,18 @@ async function collectEventCategories(
             icon: ICONS.category,
             categories: selectedCategories.join(', '),
           }),
+          {
+            link_preview_options: disableLinkPreview,
+          },
         );
       }
     } catch (error) {
       console.error('Error capturing the categories:', error);
       await ctx.replyWithMarkdownV2(
         ctx.t('msg-submit-event-category-error', { icon: ICONS.reject }),
+        {
+          link_preview_options: disableLinkPreview,
+        },
       );
     }
   }
@@ -743,6 +838,7 @@ async function collectEventLinks(
               ],
             ],
           },
+          link_preview_options: disableLinkPreview,
         },
       );
 
@@ -750,7 +846,12 @@ async function collectEventLinks(
 
       if (response.callbackQuery?.data === 'cancel_conversation') {
         await response.answerCallbackQuery();
-        await response.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'));
+        await response.replyWithMarkdownV2(
+          ctx.t('msg-conversation-cancelled'),
+          {
+            link_preview_options: disableLinkPreview,
+          },
+        );
         return false;
       } else if (response.callbackQuery?.data === 'no_links') {
         await response.answerCallbackQuery();
@@ -760,6 +861,9 @@ async function collectEventLinks(
         if (response.message.text.length > 40) {
           await ctx.replyWithMarkdownV2(
             ctx.t('msg-submit-event-link-too-long', { icon: ICONS.reject }),
+            {
+              link_preview_options: disableLinkPreview,
+            },
           );
           continue;
         }
@@ -777,12 +881,18 @@ async function collectEventLinks(
       } else {
         await ctx.replyWithMarkdownV2(
           ctx.t('msg-submit-event-links-invalid', { icon: ICONS.reject }),
+          {
+            link_preview_options: disableLinkPreview,
+          },
         );
       }
     } catch (error) {
       console.error('Error capturing the links:', error);
       await ctx.replyWithMarkdownV2(
         ctx.t('msg-submit-event-links-error', { icon: ICONS.reject }),
+        {
+          link_preview_options: disableLinkPreview,
+        },
       );
     }
   }
@@ -816,6 +926,7 @@ async function collectEventGroupLink(
               ],
             ],
           },
+          link_preview_options: disableLinkPreview,
         },
       );
 
@@ -823,7 +934,9 @@ async function collectEventGroupLink(
 
       if (response.callbackQuery?.data === 'cancel_conversation') {
         await response.answerCallbackQuery();
-        await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'));
+        await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'), {
+          link_preview_options: disableLinkPreview,
+        });
         return false;
       } else if (response.callbackQuery?.data === 'no_group_link') {
         await response.answerCallbackQuery();
@@ -835,12 +948,18 @@ async function collectEventGroupLink(
       } else {
         await ctx.replyWithMarkdownV2(
           ctx.t('msg-submit-event-group-link-invalid', { icon: ICONS.reject }),
+          {
+            link_preview_options: disableLinkPreview,
+          },
         );
       }
     } catch (error) {
       console.error('Error capturing the group link:', error);
       await ctx.replyWithMarkdownV2(
         ctx.t('msg-submit-event-group-link-error', { icon: ICONS.reject }),
+        {
+          link_preview_options: disableLinkPreview,
+        },
       );
     }
   }
@@ -874,6 +993,7 @@ async function collectEventImage(
               ],
             ],
           },
+          link_preview_options: disableLinkPreview,
         },
       );
       const imageResponse = await conversation.wait();
@@ -882,6 +1002,9 @@ async function collectEventImage(
         await imageResponse.answerCallbackQuery();
         await imageResponse.replyWithMarkdownV2(
           ctx.t('msg-conversation-cancelled'),
+          {
+            link_preview_options: disableLinkPreview,
+          },
         );
         return false;
       } else if (imageResponse.callbackQuery?.data === 'no_image') {
@@ -900,6 +1023,9 @@ async function collectEventImage(
         if (!response.ok) {
           await ctx.replyWithMarkdownV2(
             ctx.t('msg-submit-event-image-error', { icon: ICONS.reject }),
+            {
+              link_preview_options: disableLinkPreview,
+            },
           );
           continue;
         }
@@ -911,12 +1037,18 @@ async function collectEventImage(
       } else {
         await ctx.replyWithMarkdownV2(
           ctx.t('msg-submit-event-image-invalid', { icon: ICONS.reject }),
+          {
+            link_preview_options: disableLinkPreview,
+          },
         );
       }
     } catch (error) {
       console.error('Error capturing the image:', error);
       await ctx.replyWithMarkdownV2(
         ctx.t('msg-submit-event-image-error', { icon: ICONS.reject }),
+        {
+          link_preview_options: disableLinkPreview,
+        },
       );
     }
   }
@@ -931,11 +1063,17 @@ async function summarizeAndSaveEvent(
   if (getEventsRequireApproval()) {
     await ctx.replyWithMarkdownV2(
       ctx.t('msg-submit-event-success-pending', { icon: ICONS.approve }),
+      {
+        link_preview_options: disableLinkPreview,
+      },
     );
     await sendEventToAdmins(ctx, savedEvent);
   } else {
     await ctx.replyWithMarkdownV2(
       ctx.t('msg-submit-event-success-published', { icon: ICONS.approve }),
+      {
+        link_preview_options: disableLinkPreview,
+      },
     );
     await publishEvent(ctx, savedEvent);
   }

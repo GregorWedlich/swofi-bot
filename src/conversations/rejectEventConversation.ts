@@ -6,6 +6,10 @@ import { getAdminChatId } from '../constants/constants';
 import { escapeMarkdownV2Text } from '../utils/markdownUtils';
 import { ICONS } from '../utils/iconUtils';
 
+const disableLinkPreview = {
+  is_disabled: true,
+};
+
 export async function rejectEventConversation(
   conversation: Conversation<MyContext>,
   ctx: MyContext,
@@ -14,17 +18,24 @@ export async function rejectEventConversation(
     const eventId = ctx.session.eventId;
 
     if (!eventId) {
-      await ctx.replyWithMarkdownV2(ctx.t('msg-reject-event-no-eventid-found'));
+      await ctx.replyWithMarkdownV2(
+        ctx.t('msg-reject-event-no-eventid-found'),
+        { link_preview_options: disableLinkPreview },
+      );
       return;
     }
 
     const event = await findEventById(eventId);
     if (!event) {
-      await ctx.replyWithMarkdownV2(ctx.t('msg-reject-event-not-found'));
+      await ctx.replyWithMarkdownV2(ctx.t('msg-reject-event-not-found'), {
+        link_preview_options: disableLinkPreview,
+      });
       return;
     }
 
-    await ctx.replyWithMarkdownV2(ctx.t('msg-reject-event-rejection-reason'));
+    await ctx.replyWithMarkdownV2(ctx.t('msg-reject-event-rejection-reason'), {
+      link_preview_options: disableLinkPreview,
+    });
 
     const reasonResponse = await conversation.waitFor('message:text');
     const rejectionReason = reasonResponse.message.text;
@@ -39,6 +50,7 @@ export async function rejectEventConversation(
           eventTitle: escapeMarkdownV2Text(event.title),
           rejectionReason: escapeMarkdownV2Text(rejectionReason),
         }),
+        { link_preview_options: disableLinkPreview },
       );
 
       const messageId = ctx.callbackQuery?.message?.message_id;
@@ -67,6 +79,7 @@ export async function rejectEventConversation(
         }),
         {
           reply_to_message_id: messageId,
+          link_preview_options: disableLinkPreview,
         },
       );
     } catch (error) {
@@ -78,6 +91,7 @@ export async function rejectEventConversation(
     console.error('Error rejecting the event:', error);
     await ctx.replyWithMarkdownV2(
       ctx.t('msg-reject-event-error', { icon: ICONS.reject }),
+      { link_preview_options: disableLinkPreview },
     );
   }
 }
