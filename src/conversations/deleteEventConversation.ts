@@ -8,6 +8,7 @@ import { handleEventDeletion } from '../services/eventService';
 import { MyContext } from '../types/context';
 import { ICONS } from '../utils/iconUtils';
 import { formatEvent } from '../utils/eventMessageFormatter';
+import { escapeMarkdownV2Text } from '../utils/markdownUtils'; // Import the escape function
 
 const disableLinkPreview = {
   is_disabled: true,
@@ -160,7 +161,7 @@ async function confirmDeletion(
 
   await ctx.replyWithMarkdownV2(
     ctx.t('msg-delete-event-confirm-prompt', {
-      eventTitle: event.title,
+      eventTitle: escapeMarkdownV2Text(event.title), // Escape the title here
     }),
     {
       reply_markup: confirmationKeyboard,
