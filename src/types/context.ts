@@ -9,6 +9,7 @@ interface SessionData {
   bookmarks?: string[];
   eventId?: string;
   locale?: string;
+  adminDeleteEventId?: string;
 }
 
 export type MyContext = Context &

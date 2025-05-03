@@ -282,3 +282,13 @@ msg-delete-event-error = An error occurred while deleting the event\. { $icon }
 # --- Event Service ---
 msg-service-event-deleted-success = { $icon } The event "{ $eventTitle }" was successfully deleted\.
 msg-service-event-deletion-error = { $icon } Error deleting the event\. Please try again later or contact support\.
+
+# --- Admin Management Buttons & Messages ---
+admin-btn-delete = Delete { $icon }
+admin-msg-confirm-delete-reason = Do you really want to delete the event "{ $eventTitle }"? Optionally provide a reason or click Delete directly\.
+admin-btn-confirm-delete-direct = Delete directly { $icon }
+admin-btn-cancel-delete = Cancel { $icon }
+admin-msg-delete-success = { $icon } Event successfully deleted\.
+admin-msg-delete-reason-provided = Reason\: { $reason }
+admin-msg-delete-error = { $icon } Error deleting the event\.
+admin-msg-delete-cancelled = { $icon } Deletion cancelled\.

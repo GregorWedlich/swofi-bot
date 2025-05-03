@@ -38,8 +38,8 @@ export async function editEventConversation(
   ctx: MyContext,
 ) {
   try {
+    // --- User Edit Flow (Admin flow removed) ---
     const userId = ctx.from?.id;
-
     if (!userId) {
       await ctx.replyWithMarkdownV2(ctx.t('msg-edit-event-user-not-found'), {
         link_preview_options: disableLinkPreview,
@@ -71,11 +71,21 @@ export async function editEventConversation(
     }
 
     const originalEvent = await selectEvent(conversation, ctx, availableEvents);
-    if (!originalEvent) return;
+    if (!originalEvent) return; // User cancelled selection
+
+    // Ensure originalEvent is not null before proceeding (redundant check after selectEvent, but safe)
+    if (!originalEvent) {
+      console.error('Original event is null after selection. Aborting.');
+      await ctx.replyWithMarkdownV2(ctx.t('msg-edit-event-error'), {
+        link_preview_options: disableLinkPreview,
+      });
+      return;
+    }
 
     const eventData: Partial<Event> = { ...originalEvent };
 
     let confirmed = false;
+    // --- Removed duplicated block below ---
     while (!confirmed) {
       await ctx.replyWithMarkdownV2(
         ctx.t('msg-summary-prompt', { icon: ICONS.approve }),
@@ -249,6 +259,7 @@ async function collectEventTitle(
   ctx: MyContext,
   eventData: Partial<Event>,
 ): Promise<boolean> {
+  console.log('Entering collectEventTitle'); // Add log
   while (true) {
     try {
       await ctx.replyWithMarkdownV2(ctx.t('msg-edit-event-new-title'), {
@@ -258,35 +269,50 @@ async function collectEventTitle(
         ),
         link_preview_options: disableLinkPreview,
       });
+      console.log('collectEventTitle: Waiting for response...'); // Add log
       const response = await conversation.wait();
+      // Using console.dir for potentially better object inspection
+      console.dir(response.update, { depth: null }); // Log the full update object
 
       if (response.callbackQuery?.data === 'cancel_conversation') {
+        console.log('collectEventTitle: Cancel button pressed'); // Add log
         await response.answerCallbackQuery();
         return false;
       }
 
       if (response.message?.text) {
-        if (response.message.text.length > 80) {
+        const newTitle = response.message.text;
+        console.log(`collectEventTitle: Received text: "${newTitle}"`); // Add log
+        if (newTitle.length > 80) {
+          console.log('collectEventTitle: Title too long'); // Add log
           await ctx.replyWithMarkdownV2(
             ctx.t('msg-submit-event-title-too-long', { icon: ICONS.reject }),
             { link_preview_options: disableLinkPreview },
           );
           continue;
         } else {
-          eventData.title = response.message.text;
+          console.log('collectEventTitle: Title accepted'); // Add log
+          eventData.title = newTitle;
           return true;
         }
       }
+
+      // Handle unexpected updates explicitly
+      console.log(
+        'collectEventTitle: Received unexpected update type, asking again.',
+      ); // Add log
+      // Optionally inform the user about invalid input if needed
+      // await ctx.reply("Invalid input type, please send text or press cancel.");
     } catch (error) {
       console.error('Error while collecting the title:', error);
       await ctx.replyWithMarkdownV2(
         ctx.t('msg-edit-event-title-error', { icon: ICONS.reject }),
         { link_preview_options: disableLinkPreview },
       );
+      return false; // Exit on error
     }
   }
-
-  return false;
+  // This part is unreachable due to the loop/returns
 }
 
 async function collectEventDescription(
