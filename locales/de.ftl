@@ -307,3 +307,13 @@ msg-summary-btn-edit-image = { $icon } Bild
 msg-summary-error-sending-image = { $icon } Fehler beim Senden des Bildes in der Zusammenfassung\. Die Textdetails werden trotzdem angezeigt\.
 msg-summary-prompt = { $icon } Hier ist eine Zusammenfassung deines Events\. Bitte überprüfe die Details und bestätige oder bearbeite sie\.
 msg-summary-edit-options-heading = { $icon } Bearbeitungsoptionen\:
+
+# --- Admin Management Buttons & Messages ---
+admin-btn-delete = Löschen { $icon }
+admin-msg-confirm-delete-reason = Möchtest du das Event "{ $eventTitle }" wirklich löschen? Gib optional einen Grund an oder klicke direkt auf Löschen\.
+admin-btn-confirm-delete-direct = Direkt löschen { $icon }
+admin-btn-cancel-delete = Abbrechen { $icon }
+admin-msg-delete-success = { $icon } Event erfolgreich gelöscht\.
+admin-msg-delete-reason-provided = Grund\: { $reason }
+admin-msg-delete-error = { $icon } Fehler beim Löschen des Events\.
+admin-msg-delete-cancelled = { $icon } Löschvorgang abgebrochen\.

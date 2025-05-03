@@ -24,6 +24,7 @@ import { rejectEventConversation } from './conversations/rejectEventConversation
 import { searchEventConversation } from './conversations/searchEventConversation';
 import { editEventConversation } from './conversations/editEventConversation';
 import { deleteEventConversation } from './conversations/deleteEventConversation';
+import { adminDeleteConversation } from './conversations/adminDeleteConversation';
 import { MyContext } from './types/context';
 import {
   handleEventApproval,
@@ -50,8 +51,10 @@ bot.api.config.use(
   parseMode('MarkdownV2'),
 );
 
-function getSessionKey(ctx: Context) {
-  return ctx.chat?.id.toString();
+// Use user ID for session key to track conversations across different chats (private, group)
+function getSessionKey(ctx: Context): string | undefined {
+  // Prefer sender ID, fallback to chat ID for scenarios where sender might be absent (e.g., channel posts)
+  return ctx.from?.id.toString() ?? ctx.chat?.id.toString();
 }
 
 bot.use(sequentialize(getSessionKey));
@@ -116,6 +119,7 @@ bot.use(createConversation(rejectEventConversation, 'rejectEventConversation'));
 bot.use(createConversation(searchEventConversation, 'searchEventConversation'));
 bot.use(createConversation(editEventConversation, 'editEventConversation'));
 bot.use(createConversation(deleteEventConversation, 'deleteEventConversation'));
+bot.use(createConversation(adminDeleteConversation, 'adminDeleteConversation'));
 
 bot.command('submit', async (ctx) => {
   await ctx.replyWithMarkdownV2(
@@ -273,6 +277,14 @@ bot.callbackQuery(/approve_(edit_)?(.+)/, async (ctx) => {
 bot.callbackQuery(/reject_(edit_)?(.+)/, async (ctx) => {
   const eventId = ctx.match[2];
   await handleEventRejection(eventId, ctx);
+});
+
+bot.callbackQuery(/admin_delete_(.+)/, async (ctx) => {
+  const eventId = ctx.match[1];
+  ctx.session.adminDeleteEventId = eventId;
+  await ctx.answerCallbackQuery();
+  await ctx.conversation.enter('adminDeleteConversation');
+  console.log(`Admin entered adminDeleteConversation for Event ID=${eventId}`);
 });
 
 export function startBot() {

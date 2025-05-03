@@ -16,6 +16,7 @@ import { MyContext } from '../types/context';
 import { ICONS } from '../utils/iconUtils';
 import { escapeMarkdownV2Text } from '../utils/markdownUtils';
 import { formatEvent } from '../utils/eventMessageFormatter';
+import { InlineKeyboard } from 'grammy';
 
 const disableLinkPreview = {
   is_disabled: true,
@@ -83,6 +84,65 @@ export async function notifyAdminsOfEvent(
   } catch (error) {
     console.error(
       `General error in notifyAdminsOfEvent for Event ID=${event.id}:`,
+      error,
+    );
+  }
+}
+
+/**
+ * Posts a message with Delete buttons to the admin group after an event is published or updated.
+ */
+export async function postAdminManagementMessage(
+  ctx: MyContext,
+  event: Event,
+): Promise<void> {
+  try {
+    const messageText = formatEvent(ctx, event, { context: 'channel' });
+    const adminKeyboard = new InlineKeyboard().text(
+      ctx.t('admin-btn-delete', { icon: ICONS.reject }),
+      `admin_delete_${event.id}`,
+    );
+
+    const adminChatId = getAdminChatId();
+
+    if (event.imageBase64) {
+      const imageBuffer = Buffer.from(event.imageBase64, 'base64');
+      const stream = Readable.from(imageBuffer);
+      try {
+        await bot.api.sendPhoto(adminChatId, new InputFile(stream), {
+          caption: messageText,
+          parse_mode: 'MarkdownV2',
+          reply_markup: adminKeyboard,
+        });
+        console.log(
+          `Admin management message (photo) sent for Event ID=${event.id}`,
+        );
+      } catch (error) {
+        console.error(
+          `Error sending admin management photo for Event ID=${event.id}:`,
+          error,
+        );
+      }
+    } else {
+      try {
+        await bot.api.sendMessage(adminChatId, messageText, {
+          parse_mode: 'MarkdownV2',
+          reply_markup: adminKeyboard,
+          link_preview_options: disableLinkPreview,
+        });
+        console.log(
+          `Admin management message (text) sent for Event ID=${event.id}`,
+        );
+      } catch (error) {
+        console.error(
+          `Error sending admin management text for Event ID=${event.id}:`,
+          error,
+        );
+      }
+    }
+  } catch (error) {
+    console.error(
+      `General error in postAdminManagementMessage for Event ID=${event.id}:`,
       error,
     );
   }
@@ -212,14 +272,20 @@ export async function handleEventRejection(eventId: string, ctx: MyContext) {
   }
 }
 
-export async function handleEventDeletion(eventId: string, ctx: MyContext) {
+export async function handleEventDeletion(
+  eventId: string,
+  ctx: MyContext,
+  suppressReply = false,
+): Promise<boolean> {
   try {
     const event = await findEventById(eventId);
 
     if (!event) {
-      await ctx.replyWithMarkdownV2(ctx.t('msg-service-event-not-found'), {
-        link_preview_options: disableLinkPreview,
-      });
+      if (!suppressReply) {
+        await ctx.replyWithMarkdownV2(ctx.t('msg-service-event-not-found'), {
+          link_preview_options: disableLinkPreview,
+        });
+      }
       console.warn(`Event not found for deletion: ID=${eventId}`);
       return false;
     }
@@ -244,20 +310,24 @@ export async function handleEventDeletion(eventId: string, ctx: MyContext) {
     await deleteEventById(eventId);
     console.log(`Event deleted from database: ID=${eventId}`);
 
-    await ctx.replyWithMarkdownV2(
-      ctx.t('msg-service-event-deleted-success', {
-        icon: ICONS.approve,
-        eventTitle: escapeMarkdownV2Text(event.title),
-      }),
-      { link_preview_options: disableLinkPreview },
-    );
+    if (!suppressReply) {
+      await ctx.replyWithMarkdownV2(
+        ctx.t('msg-service-event-deleted-success', {
+          icon: ICONS.approve,
+          eventTitle: escapeMarkdownV2Text(event.title),
+        }),
+        { link_preview_options: disableLinkPreview },
+      );
+    }
     return true;
   } catch (error) {
     console.error(`Error deleting event ID=${eventId}:`, error);
-    await ctx.replyWithMarkdownV2(
-      ctx.t('msg-service-event-deletion-error', { icon: ICONS.reject }),
-      { link_preview_options: disableLinkPreview },
-    );
+    if (!suppressReply) {
+      await ctx.replyWithMarkdownV2(
+        ctx.t('msg-service-event-deletion-error', { icon: ICONS.reject }),
+        { link_preview_options: disableLinkPreview },
+      );
+    }
     return false;
   }
 }
@@ -291,6 +361,7 @@ export async function postEventToChannel(
         await updateEvent(event.id, {
           messageId: BigInt(sentMessage.message_id),
         });
+        await postAdminManagementMessage(ctx, event);
       } catch (error) {
         console.error(
           `Error posting the photo to the channel for Event ID=${event.id}:`,
@@ -313,6 +384,8 @@ export async function postEventToChannel(
         await updateEvent(event.id, {
           messageId: BigInt(sentMessage.message_id),
         });
+
+        await postAdminManagementMessage(ctx, event);
       } catch (error) {
         console.error(
           `Error posting the message to the channel for Event ID=${event.id}:`,
@@ -371,6 +444,10 @@ export async function updateEventInChannel(
         await updateEvent(event.id, {
           messageId: BigInt(sentMessage.message_id),
         });
+        const updatedEvent = await findEventById(event.id);
+        if (updatedEvent) {
+          await postAdminManagementMessage(ctx, updatedEvent);
+        }
       } catch (error) {
         console.error(
           `Error posting the updated photo to the channel for Event ID=${event.id}:`,
@@ -390,6 +467,10 @@ export async function updateEventInChannel(
             },
           );
           console.log(`Message edited with ID: ${event.messageId}`);
+          const updatedEvent = await findEventById(event.id);
+          if (updatedEvent) {
+            await postAdminManagementMessage(ctx, updatedEvent);
+          }
         } catch (error) {
           console.error(
             `Error editing message with ID: ${event.messageId}`,
@@ -411,6 +492,10 @@ export async function updateEventInChannel(
             await updateEvent(event.id, {
               messageId: BigInt(sentMessage.message_id),
             });
+            const updatedEvent = await findEventById(event.id);
+            if (updatedEvent) {
+              await postAdminManagementMessage(ctx, updatedEvent);
+            }
           } catch (sendError) {
             console.error(
               `Error sending the new message for Event ID=${event.id}:`,
@@ -437,6 +522,10 @@ export async function updateEventInChannel(
           await updateEvent(event.id, {
             messageId: BigInt(sentMessage.message_id),
           });
+          const updatedEvent = await findEventById(event.id);
+          if (updatedEvent) {
+            await postAdminManagementMessage(ctx, updatedEvent);
+          }
         } catch (error) {
           console.error(
             `Error posting the new message in the channel for Event ID=${event.id}:`,
