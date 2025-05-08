@@ -93,7 +93,7 @@ export function formatEvent(
   }
 
   const formatedEntryDate = formatInTimeZone(
-    event.date,
+    event.entryDate,
     getTimezone(),
     getDateFormat(),
     { locale },
