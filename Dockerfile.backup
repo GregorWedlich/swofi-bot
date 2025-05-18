@@ -1,0 +1,12 @@
+FROM alpine:latest
+
+# 1) Installiere nur, was gebraucht wird
+RUN apk add --no-cache postgresql-client gzip
+
+# 2) Script und Cronjob reinpacken
+COPY backup.sh /usr/local/bin/backup.sh
+RUN chmod +x /usr/local/bin/backup.sh
+COPY root-cron /etc/crontabs/root
+
+# 3) Cron im Vordergrund starten
+CMD ["crond", "-f", "-l", "2"]

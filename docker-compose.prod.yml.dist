@@ -1,0 +1,38 @@
+services:
+  db-goewage:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: "${DB_USER}"
+      POSTGRES_PASSWORD: "${DB_PASSWORD}"
+      POSTGRES_DB: "${DB_NAME}"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    restart: always
+
+  bot-goewage:
+    build: .
+    depends_on:
+      - db-goewage
+    env_file:
+      - ./.env
+    environment:
+      DATABASE_URL: >-
+        postgresql://${DB_USER}:${DB_PASSWORD}@db-goewage:5432/${DB_NAME}?schema=public
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    restart: always
+
+  backup-goewage:
+    build:
+      context: .
+      dockerfile: Dockerfile.backup
+    env_file:
+      - .env
+    volumes:
+      - ./backups:/backups
+    depends_on:
+      - db-goewage
+    restart: always
+
+volumes:
+  db_data:
