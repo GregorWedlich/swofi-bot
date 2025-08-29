@@ -29,4 +29,5 @@ COPY --from=build /app/prisma /app/prisma
 COPY --from=build /app/locales /app/locales
 
 ENV NODE_ENV=production
+RUN npx prisma migrate deploy
 CMD ["node", "./dist/index.js"]
