@@ -52,6 +52,8 @@ export function formatEvent(
       ctx.t('msg-format-submitted-by', {
         icon: ICONS.by,
         submittedBy: escapeMarkdownV2Text(event.submittedBy),
+        submittedById: event.submittedById.toString(),
+        userMention: `[${escapeMarkdownV2Text(event.submittedBy)}](tg://user?id=${event.submittedById})`,
       }),
     );
   } else if (context === 'user' && includeIndex) {
@@ -187,5 +189,4 @@ export function formatEvent(
   }
 
   return messageLines.join('\n');
-  return '*Blub*\\.';
 }

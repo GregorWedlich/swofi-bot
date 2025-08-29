@@ -34,7 +34,7 @@ bot-entry-error-rate-limit-exceeded = Bitte sende nicht so viele Anfragen auf ei
 # /src/utils/eventMessageFormatter.ts
 msg-format-edited-event-for-review = { $icon } *Bearbeitete Veranstaltung*
 msg-format-new-event-submitted = { $icon } *Neue Veranstaltung*
-msg-format-submitted-by = { $icon } { $submittedBy }
+msg-format-submitted-by = { $icon } Eingereicht von: { $userMention } \(ID: { $submittedById }\)
 msg-format-event-index = { $icon } *Event { $index } from { $total }*
 msg-format-event-title = { $icon } *{ $title }*
 msg-format-event-location = { $icon } { $location }

@@ -41,7 +41,7 @@ bot-entry-error-rate-limit-exceeded = Please don't send so many requests at once
 # /src/utils/eventMessageFormatter.ts
 msg-format-edited-event-for-review = { $icon } *Edited event*
 msg-format-new-event-submitted = { $icon } *New event*
-msg-format-submitted-by = { $icon } { $submittedBy }
+msg-format-submitted-by = { $icon } Submitted by: { $userMention } \\(ID: { $submittedById }\\)
 msg-format-event-index = { $icon } *Event { $index } from { $total }*
 msg-format-event-title = { $icon } *{ $title }*
 msg-format-event-location = { $icon } { $location }

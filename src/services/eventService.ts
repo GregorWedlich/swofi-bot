@@ -97,7 +97,7 @@ export async function postAdminManagementMessage(
   event: Event,
 ): Promise<void> {
   try {
-    const messageText = formatEvent(ctx, event, { context: 'channel' });
+    const messageText = formatEvent(ctx, event, { context: 'admin' });
     const adminKeyboard = new InlineKeyboard().text(
       ctx.t('admin-btn-delete', { icon: ICONS.reject }),
       `admin_delete_${event.id}`,
