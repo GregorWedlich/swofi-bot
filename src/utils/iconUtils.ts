@@ -34,4 +34,8 @@ export const ICONS = {
   email: '📧', // Oder ein anderes passendes Emoji
   telegram: '➡️', // Oder ein anderes passendes Emoji
   rules: '📜', // Oder ein anderes passendes Emoji
+  template: '📋',
+  list: '📋',
+  delete: '🗑️',
+  calendar: '📅',
 };

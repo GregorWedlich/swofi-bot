@@ -23,6 +23,9 @@ import { displayEventSummaryWithOptions } from '../utils/conversationUtils';
 
 const locale = getLocaleUtil();
 
+// Global storage for template save data to bypass session persistence issues
+export const templateSaveStorage = new Map<string, Prisma.EventCreateInput>();
+
 const disableLinkPreview = {
   is_disabled: true,
 };
@@ -182,6 +185,9 @@ export async function submitEventConversation(
       );
       await publishEvent(ctx, savedEvent);
     }
+
+    // Ask if user wants to save as template
+    await askToSaveAsTemplate(ctx, eventData);
   } catch (error) {
     console.error('Error saving or publishing event:', error);
     await ctx.replyWithMarkdownV2(
@@ -1151,5 +1157,41 @@ async function collectEventImage(
         },
       );
     }
+  }
+}
+
+async function askToSaveAsTemplate(
+  ctx: MyContext,
+  eventData: Prisma.EventCreateInput,
+) {
+  try {
+    // Create a unique key for this user's template save
+    const userId = ctx.from?.id?.toString() || 'unknown';
+    
+    // Store in global storage to bypass session persistence issues
+    templateSaveStorage.set(userId, eventData);
+    
+    await ctx.replyWithMarkdownV2(
+      ctx.t('msg-save-as-template-prompt', { icon: ICONS.save }),
+      {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              {
+                text: ctx.t('bot-entry-yes', { icon: ICONS.approve }),
+                callback_data: `save_as_template_${userId}`,
+              },
+              {
+                text: ctx.t('bot-entry-no', { icon: ICONS.reject }),
+                callback_data: 'skip_template',
+              },
+            ],
+          ],
+        },
+        link_preview_options: disableLinkPreview,
+      },
+    );
+  } catch (error) {
+    console.error('Error in template save prompt:', error);
   }
 }

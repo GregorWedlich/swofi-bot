@@ -30,6 +30,11 @@ export async function sendEventToAdmins(
  * @returns A promise that resolves when the event has been successfully published to the event channel.
  */
 export async function publishEvent(ctx: MyContext, event: Event) {
+  const stack = new Error().stack;
+  console.log(
+    `DEBUG: publishEvent called from:`,
+    stack?.split('\n')[2]?.trim()
+  );
   console.log(
     `Publishing event: ID=${event.id}, status=${event.status}, messageId=${event.messageId}`,
   );

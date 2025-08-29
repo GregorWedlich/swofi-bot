@@ -12,6 +12,9 @@ bot-entry-search-event = { $icon } Veranstaltungssuche
 bot-entry-submit-event = { $icon } *Veranstaltung einreichen*
 bot-entry-event-edit-command = Möchtest du eine deiner Veranstaltungen bearbeiten?
 bot-entry-edit-cancelled = { $icon } Bearbeitung abgebrochen\.
+bot-entry-templates-command = { $icon } *Vorlagen verwalten*
+bot-entry-view-templates = { $icon } Vorlagen anzeigen
+bot-entry-templates-cancelled = { $icon } Vorlagen\-Ansicht abgebrochen\.
 
 msg-conversation-cancelled-btn = { $icon } Abbrechen
 msg-conversation-cancelled = Das Gespräch wurde abgebrochen\.
@@ -80,6 +83,9 @@ msg-submit-event-end-date = { $icon } *Enddatum und Endzeit* \(Format: { $date }
 msg-submit-event-end-date-invalid = { $icon } Ungültiges Enddatum\! Bitte verwende das Format { $date }\.
 msg-submit-event-end-date-future = { $icon } Das Enddatum muss in der Zukunft liegen\!
 msg-submit-event-end-date-before-start = { $icon } Das Enddatum muss nach dem Startdatum liegen\!
+msg-submit-event-date = { $icon } Bitte gib die Veranstaltungsdaten ein \(Format: { $dateFormat }\):
+msg-submit-event-date-invalid = { $icon } Ungültiges Datum\! Bitte verwende das Format { $dateFormat }\.
+msg-submit-event-is-multiday = { $icon } Geht die Veranstaltung über mehrere Tage?
 msg-submit-event-date-summary = { $icon } *Zusammenfassung:*
     Einlass: { $entryDate }
     Start: { $startDate }
@@ -317,3 +323,45 @@ admin-msg-delete-success = { $icon } Event erfolgreich gelöscht\.
 admin-msg-delete-reason-provided = Grund\: { $reason }
 admin-msg-delete-error = { $icon } Fehler beim Löschen des Events\.
 admin-msg-delete-cancelled = { $icon } Löschvorgang abgebrochen\.
+
+# --- Template Messages ---
+msg-save-as-template-prompt = { $icon } Möchtest du dieses Event als Vorlage speichern?
+msg-template-name-prompt = { $icon } Bitte gib einen Namen für die Vorlage ein \(max 50 Zeichen\):
+msg-template-save-cancelled = { $icon } Vorlage speichern abgebrochen\.
+msg-template-saved-success = { $icon } Vorlage "{ $name }" erfolgreich gespeichert\!
+msg-template-save-error = { $icon } Fehler beim Speichern der Vorlage\.
+template-error-max-limit = { $icon } Du hast die maximale Anzahl von { $max } Vorlagen erreicht\.
+
+msg-no-templates-found = { $icon } Du hast noch keine Vorlagen gespeichert\.
+msg-template-list-header = { $icon } Du hast { $count } Vorlage\(n\):
+msg-template-select-prompt = { $icon } Wähle eine Vorlage aus:
+msg-template-list-cancel = { $icon } Abbrechen
+msg-template-list-cancelled = { $icon } Vorlagenauswahl abgebrochen\.
+msg-template-not-found = { $icon } Vorlage nicht gefunden\.
+
+msg-template-details-header = { $icon } *Vorlage: { $name }*
+msg-template-detail-title = { $icon } *Titel:* { $title }
+msg-template-detail-description = { $icon } *Beschreibung:* { $description }
+msg-template-detail-location = { $icon } *Ort:* { $location }
+msg-template-detail-categories = { $icon } *Kategorien:* { $categories }
+msg-template-detail-links = { $icon } *Links:* { $count } Link\(s\)
+msg-template-detail-has-group-link = { $icon } *Gruppenlink:* Vorhanden
+msg-template-detail-has-image = { $icon } *Bild:* Vorhanden
+
+msg-template-action-prompt = { $icon } Was möchtest du mit dieser Vorlage tun?
+msg-template-use-btn = { $icon } Verwenden
+msg-template-delete-btn = { $icon } Löschen
+msg-template-back-btn = { $icon } Zurück
+
+msg-template-delete-confirm = { $icon } Möchtest du die Vorlage "{ $name }" wirklich löschen?
+msg-template-confirm-delete = { $icon } Ja, löschen
+msg-template-cancel-delete = { $icon } Abbrechen
+msg-template-deleted = { $icon } Vorlage "{ $name }" wurde gelöscht\.
+msg-template-delete-error = { $icon } Fehler beim Löschen der Vorlage\.
+msg-template-delete-cancelled = { $icon } Löschen abgebrochen\.
+
+msg-template-use-start = { $icon } Verwende Vorlage "{ $name }" für ein neues Event\.
+msg-template-use-summary = { $icon } Hier sind die Daten aus der Vorlage\. Du kannst sie bearbeiten\.
+msg-template-use-date-required = { $icon } Bitte gib das Datum für das neue Event ein:
+msg-submit-event-links-keep = { $icon } Links behalten
+msg-error-user-not-found = { $icon } Benutzer nicht gefunden\.

@@ -25,6 +25,10 @@ import { searchEventConversation } from './conversations/searchEventConversation
 import { editEventConversation } from './conversations/editEventConversation';
 import { deleteEventConversation } from './conversations/deleteEventConversation';
 import { adminDeleteConversation } from './conversations/adminDeleteConversation';
+import { templateListConversation } from './conversations/templateListConversation';
+import { templateUseConversation } from './conversations/templateUseConversation';
+import { templateSaveConversation } from './conversations/templateSaveConversation';
+import { templateSaveStorage } from './conversations/submitEventConversation';
 import { MyContext } from './types/context';
 import {
   handleEventApproval,
@@ -120,6 +124,9 @@ bot.use(createConversation(searchEventConversation, 'searchEventConversation'));
 bot.use(createConversation(editEventConversation, 'editEventConversation'));
 bot.use(createConversation(deleteEventConversation, 'deleteEventConversation'));
 bot.use(createConversation(adminDeleteConversation, 'adminDeleteConversation'));
+bot.use(createConversation(templateListConversation, 'templateListConversation'));
+bot.use(createConversation(templateUseConversation, 'templateUseConversation'));
+bot.use(createConversation(templateSaveConversation, 'templateSaveConversation'));
 
 bot.command('submit', async (ctx) => {
   await ctx.replyWithMarkdownV2(
@@ -162,6 +169,18 @@ bot.command('delete', async (ctx) => {
       .text(ctx.t('bot-entry-no', { icon: ICONS.reject }), 'cancel_delete'),
     link_preview_options: disableLinkPreview,
   });
+});
+
+bot.command('templates', async (ctx) => {
+  await ctx.replyWithMarkdownV2(
+    ctx.t('bot-entry-templates-command', { icon: ICONS.template }),
+    {
+      reply_markup: new InlineKeyboard()
+        .text(ctx.t('bot-entry-view-templates', { icon: ICONS.list }), 'view_templates')
+        .text(ctx.t('bot-entry-no', { icon: ICONS.reject }), 'cancel_templates'),
+      link_preview_options: disableLinkPreview,
+    },
+  );
 });
 
 bot.command('support', async (ctx) => {
@@ -260,26 +279,47 @@ bot.callbackQuery('cancel_delete', async (ctx) => {
   );
 });
 
-bot.callbackQuery('cancel_conversation', async (ctx) => {
+bot.callbackQuery('view_templates', async (ctx) => {
   await ctx.answerCallbackQuery();
-  await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'), {
-    link_preview_options: disableLinkPreview,
-  });
-  console.log('Conversation cancelled');
-  return;
+  await ctx.conversation.enter('templateListConversation');
 });
 
-bot.callbackQuery(/approve_(edit_)?(.+)/, async (ctx) => {
+bot.callbackQuery('cancel_templates', async (ctx) => {
+  await ctx.answerCallbackQuery();
+  await ctx.replyWithMarkdownV2(
+    ctx.t('bot-entry-templates-cancelled', { icon: ICONS.reject }),
+    { link_preview_options: disableLinkPreview },
+  );
+});
+
+bot.callbackQuery(/^save_as_template_(\d+)$/, async (ctx) => {
+  await ctx.answerCallbackQuery();
+  await ctx.conversation.enter('templateSaveConversation');
+});
+
+
+bot.callbackQuery('skip_template', async (ctx) => {
+  await ctx.answerCallbackQuery();
+  
+  // Clean up global storage when skipping
+  const userId = ctx.from?.id?.toString();
+  if (userId && templateSaveStorage.has(userId)) {
+    templateSaveStorage.delete(userId);
+  }
+});
+
+
+bot.callbackQuery(/^approve_(edit_)?([a-fA-F0-9-]{36})$/, async (ctx) => {
   const eventId = ctx.match[2];
   await handleEventApproval(eventId, ctx);
 });
 
-bot.callbackQuery(/reject_(edit_)?(.+)/, async (ctx) => {
+bot.callbackQuery(/^reject_(edit_)?([a-fA-F0-9-]{36})$/, async (ctx) => {
   const eventId = ctx.match[2];
   await handleEventRejection(eventId, ctx);
 });
 
-bot.callbackQuery(/admin_delete_(.+)/, async (ctx) => {
+bot.callbackQuery(/^admin_delete_([a-fA-F0-9-]{36})$/, async (ctx) => {
   const eventId = ctx.match[1];
   ctx.session.adminDeleteEventId = eventId;
   await ctx.answerCallbackQuery();

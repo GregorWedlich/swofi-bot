@@ -12,6 +12,9 @@ bot-entry-search-event = { $icon } Event Search
 bot-entry-submit-event = { $icon } *Submit your Event*
 bot-entry-event-edit-command = Would you like to edit one of your events?
 bot-entry-edit-cancelled = { $icon } Editing cancelled\.
+bot-entry-templates-command = { $icon } *Manage Templates*
+bot-entry-view-templates = { $icon } View Templates
+bot-entry-templates-cancelled = { $icon } Templates view cancelled\.
 
 # /src/bot.ts - Support Command
 msg-support-title = { $icon } Support & Contact
@@ -84,6 +87,9 @@ msg-submit-event-end-date = { $icon } *End date and end time* \(Format: { $date 
 msg-submit-event-end-date-invalid = { $icon } Invalid end date\! Please use the format { $date }\.
 msg-submit-event-end-date-future = { $icon } The end date must be in the future\!
 msg-submit-event-end-date-before-start = { $icon } The end date must be after the start date\!
+msg-submit-event-date = { $icon } Please enter the event date \(Format: { $dateFormat }\):
+msg-submit-event-date-invalid = { $icon } Invalid date\! Please use the format { $dateFormat }\.
+msg-submit-event-is-multiday = { $icon } Does the event span multiple days?
 msg-submit-event-date-summary = { $icon } *Summary:*
     Entry: { $entryDate }
     Start: { $startDate }
@@ -292,3 +298,45 @@ admin-msg-delete-success = { $icon } Event successfully deleted\.
 admin-msg-delete-reason-provided = Reason\: { $reason }
 admin-msg-delete-error = { $icon } Error deleting the event\.
 admin-msg-delete-cancelled = { $icon } Deletion cancelled\.
+
+# --- Template Messages ---
+msg-save-as-template-prompt = { $icon } Would you like to save this event as a template?
+msg-template-name-prompt = { $icon } Please enter a name for the template (max 50 characters):
+msg-template-save-cancelled = { $icon } Template save cancelled\.
+msg-template-saved-success = { $icon } Template "{ $name }" saved successfully\!
+msg-template-save-error = { $icon } Error saving template\.
+template-error-max-limit = { $icon } You have reached the maximum of { $max } templates\.
+
+msg-no-templates-found = { $icon } You don't have any saved templates yet\.
+msg-template-list-header = { $icon } You have { $count } template(s):
+msg-template-select-prompt = { $icon } Select a template:
+msg-template-list-cancel = { $icon } Cancel
+msg-template-list-cancelled = { $icon } Template selection cancelled\.
+msg-template-not-found = { $icon } Template not found\.
+
+msg-template-details-header = { $icon } *Template: { $name }*
+msg-template-detail-title = { $icon } *Title:* { $title }
+msg-template-detail-description = { $icon } *Description:* { $description }
+msg-template-detail-location = { $icon } *Location:* { $location }
+msg-template-detail-categories = { $icon } *Categories:* { $categories }
+msg-template-detail-links = { $icon } *Links:* { $count } link\(s\)
+msg-template-detail-has-group-link = { $icon } *Group link:* Available
+msg-template-detail-has-image = { $icon } *Image:* Available
+
+msg-template-action-prompt = { $icon } What would you like to do with this template?
+msg-template-use-btn = { $icon } Use
+msg-template-delete-btn = { $icon } Delete
+msg-template-back-btn = { $icon } Back
+
+msg-template-delete-confirm = { $icon } Are you sure you want to delete the template "{ $name }"?
+msg-template-confirm-delete = { $icon } Yes, delete
+msg-template-cancel-delete = { $icon } Cancel
+msg-template-deleted = { $icon } Template "{ $name }" has been deleted\.
+msg-template-delete-error = { $icon } Error deleting template\.
+msg-template-delete-cancelled = { $icon } Deletion cancelled\.
+
+msg-template-use-start = { $icon } Using template "{ $name }" for a new event\.
+msg-template-use-summary = { $icon } Here is the data from the template\. You can edit it\.
+msg-template-use-date-required = { $icon } Please enter the date for the new event:
+msg-submit-event-links-keep = { $icon } Keep links
+msg-error-user-not-found = { $icon } User not found\.
