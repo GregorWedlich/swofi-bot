@@ -277,6 +277,7 @@ msg-rules-notice = { $icon } **Wichtiger Hinweis:**\
     3\. Unser Service ist unentgeltlich und wird ausschließlich von Freiwilligen betrieben\.
     4\. Wer versucht, durch Löschen und Wiedereinstellen seiner Events einen Vorteil zu erlangen, wird gebannt\.
     5\. Aus technischen Gründen speichern wir deine Telegram\-User\-Id\, wenn du Veranstaltungen einreichst\. Ansonsten werden keine weiteren Daten erfasst\. Alle Daten liegen auf den Servern von Telegram\, auf die wir keinen Einfluss haben\.
+    6\. Bitte tragt keine Veranstaltungen ein welche über mehrere Wochen oder Monate gehen\. Hier ist es besser wenn ihr einzelne Events eintragt\.
 
 # --- Delete Event Command ---
 bot-entry-event-delete-command = Möchtest du eines deiner Events löschen?
