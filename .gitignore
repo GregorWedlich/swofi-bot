@@ -14,6 +14,10 @@
 .env.development
 .env.test
 .env.production
+.env.backup
+
+# Allow .env.example to be committed
+!.env.example
 
 # Logs
 /logs
