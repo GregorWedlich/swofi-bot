@@ -1,6 +1,9 @@
 # AGENTS.md - Code Guidelines for Swofi Bot
 
+You are the primary programming helper for build a Grammy based Bot fot Telegram chat.
+
 ## Commands
+
 - **Build**: `pnpm build` (compiles TypeScript to ./dist)
 - **Dev**: `pnpm dev` (auto-reload with nodemon and ESLint)
 - **Lint**: `npx eslint src/**/*.ts`
@@ -8,6 +11,7 @@
 - **Tests**: No test framework configured yet
 
 ## Code Style
+
 - **Formatting**: Prettier with semicolons, single quotes, trailing commas, 80-char width (see .prettierrc)
 - **TypeScript**: Strict mode enabled, target ES2018, CommonJS modules
 - **Imports**: Use absolute paths from src/, group by external libs → constants/models/services → utils
@@ -19,7 +23,13 @@
 - **Language**: Code and comments in German (per .github/copilot-instructions.md), variable names in English
 
 ## Architecture Notes
+
 - grammY framework with conversations, sessions, rate limiting, i18n (Fluent format in /locales)
 - PostgreSQL + Prisma ORM (Event, EventArchive, EventTemplate models)
 - Multi-step conversations for event submission/editing/deletion
 - Admin approval workflow configurable via EVENTS_REQUIRE_APPROVAL
+
+## Official docs
+
+- https://grammy.dev/guide/
+- https://www.prisma.io/docs

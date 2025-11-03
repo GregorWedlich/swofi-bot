@@ -366,3 +366,41 @@ msg-template-use-summary = { $icon } Hier sind die Daten aus der Vorlage\. Du ka
 msg-template-use-date-required = { $icon } Bitte gib das Datum für das neue Event ein:
 msg-submit-event-links-keep = { $icon } Links behalten
 msg-error-user-not-found = { $icon } Benutzer nicht gefunden\.
+
+# Blacklist Messages
+msg-blacklist-user-is-banned = { $icon } Du wurdest vom Bot gesperrt und kannst keine Veranstaltungen mehr einreichen\.
+msg-blacklist-already-banned = { $icon } User { $userId } ist bereits gesperrt\.
+msg-blacklist-user-banned = { $icon } User { $userId } \({ $userName }\) wurde erfolgreich gesperrt\.
+msg-blacklist-not-found = { $icon } User { $userId } ist nicht auf der Sperrliste\.
+msg-blacklist-user-unbanned = { $icon } User { $userId } \({ $userName }\) wurde erfolgreich entsperrt\.
+msg-blacklist-ban-error = { $icon } Fehler beim Sperren des Users\.
+msg-blacklist-unban-error = { $icon } Fehler beim Entsperren des Users\.
+msg-blacklist-empty = { $icon } Die Sperrliste ist leer\.
+msg-blacklist-header = { $icon } *Gesperrte User* \({ $count }\):
+msg-blacklist-entry = *{ $userId }* \({ $userName }\)
+    • Gesperrt am: { $bannedAt }
+    • Gesperrt von: { $bannedByName }
+    • Grund: { $reason }
+msg-blacklist-unknown-user = unbekannt
+msg-blacklist-unknown-admin = System
+msg-blacklist-no-reason = kein Grund angegeben
+msg-blacklist-list-error = { $icon } Fehler beim Abrufen der Sperrliste\.
+msg-blacklist-no-users = { $icon } Keine User mit eingereichten Events gefunden\.
+msg-blacklist-users-header = { $icon } *User mit Events* \({ $count }\):
+msg-blacklist-user-entry = • { $userId }: { $userName }
+msg-blacklist-users-list-error = { $icon } Fehler beim Abrufen der User-Liste\.
+
+# Admin Blacklist Commands
+admin-blacklist-menu-title = { $icon } *Admin Blacklist Menü*
+admin-blacklist-btn-ban = { $icon } User sperren
+admin-blacklist-btn-unban = { $icon } User entsperren
+admin-blacklist-btn-list = { $icon } Liste anzeigen
+admin-blacklist-btn-users = { $icon } Alle User
+admin-blacklist-ban-prompt = Bitte gib die User ID ein, die gesperrt werden soll:
+admin-blacklist-ban-invalid-id = { $icon } Ungültige User ID\!
+admin-blacklist-ban-reason-prompt = Möchtest du einen Sperrgrund angeben? \(oder /skip\):
+admin-blacklist-unban-prompt = Bitte gib die User ID ein, die entsperrt werden soll:
+admin-blacklist-unban-invalid-id = { $icon } Ungültige User ID\!
+admin-btn-ban-and-delete = { $icon } Sperren & Löschen
+admin-msg-ban-and-delete-success = { $icon } User { $userId } wurde gesperrt und Event "{ $eventTitle }" wurde gelöscht\.
+admin-msg-ban-and-delete-error = { $icon } Fehler beim Sperren des Users oder Löschen des Events\.

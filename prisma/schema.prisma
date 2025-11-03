@@ -88,6 +88,18 @@ model EventTemplate {
   @@index([templateName])
 }
 
+model BlacklistedUser {
+  id              String   @id @default(uuid())
+  userId          BigInt   @unique
+  userName        String?
+  bannedAt        DateTime @default(now())
+  bannedBy        BigInt?
+  bannedByName    String?
+  reason          String?
+  
+  @@index([userId])
+}
+
 enum EventStatus {
   PENDING
   APPROVED

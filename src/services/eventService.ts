@@ -98,10 +98,15 @@ export async function postAdminManagementMessage(
 ): Promise<void> {
   try {
     const messageText = formatEvent(ctx, event, { context: 'admin' });
-    const adminKeyboard = new InlineKeyboard().text(
-      ctx.t('admin-btn-delete', { icon: ICONS.reject }),
-      `admin_delete_${event.id}`,
-    );
+    const adminKeyboard = new InlineKeyboard()
+      .text(
+        ctx.t('admin-btn-delete', { icon: ICONS.reject }),
+        `admin_delete_${event.id}`,
+      )
+      .text(
+        ctx.t('admin-btn-ban-and-delete', { icon: ICONS.reject }),
+        `admin_ban_and_delete_${event.id}`,
+      );
 
     const adminChatId = getAdminChatId();
 

@@ -29,6 +29,8 @@ import { templateListConversation } from './conversations/templateListConversati
 import { templateUseConversation } from './conversations/templateUseConversation';
 import { templateSaveConversation } from './conversations/templateSaveConversation';
 import { templateSaveStorage } from './conversations/submitEventConversation';
+import { adminBanUserConversation } from './conversations/adminBanUserConversation';
+import { adminUnbanUserConversation } from './conversations/adminUnbanUserConversation';
 import { MyContext } from './types/context';
 import {
   handleEventApproval,
@@ -36,6 +38,8 @@ import {
 } from './services/eventService';
 import { ICONS } from './utils/iconUtils';
 import { escapeMarkdownV2Text } from './utils/markdownUtils';
+import { checkUserBlacklist, listBlacklistedUsers, listAllEventUsers } from './services/blacklistService';
+import { adminGroupOnly } from './utils/adminUtils';
 
 const disableLinkPreview = {
   is_disabled: true,
@@ -73,6 +77,28 @@ const i18n = new I18n<MyContext>({
 bot.use(hydrateReply);
 
 bot.use(i18n);
+
+// Blacklist middleware - check if user is banned before processing any commands
+bot.use(async (ctx, next) => {
+  const userId = ctx.from?.id;
+  
+  if (userId) {
+    const blacklistEntry = await checkUserBlacklist(BigInt(userId));
+    
+    if (blacklistEntry) {
+      // User is blacklisted, send them a message only if they're trying to interact
+      if (ctx.message || ctx.callbackQuery) {
+        await ctx.replyWithMarkdownV2(
+          ctx.t('msg-blacklist-user-is-banned', { icon: ICONS.reject }),
+          { link_preview_options: disableLinkPreview },
+        );
+      }
+      return; // Don't proceed to next middleware
+    }
+  }
+  
+  await next();
+});
 
 bot.use(
   limit({
@@ -127,6 +153,8 @@ bot.use(createConversation(adminDeleteConversation, 'adminDeleteConversation'));
 bot.use(createConversation(templateListConversation, 'templateListConversation'));
 bot.use(createConversation(templateUseConversation, 'templateUseConversation'));
 bot.use(createConversation(templateSaveConversation, 'templateSaveConversation'));
+bot.use(createConversation(adminBanUserConversation, 'adminBanUserConversation'));
+bot.use(createConversation(adminUnbanUserConversation, 'adminUnbanUserConversation'));
 
 bot.command('submit', async (ctx) => {
   await ctx.replyWithMarkdownV2(
@@ -235,6 +263,20 @@ bot.command('rules', async (ctx) => {
   });
 });
 
+bot.command('blacklist', adminGroupOnly(), async (ctx) => {
+  await ctx.replyWithMarkdownV2(
+    ctx.t('admin-blacklist-menu-title', { icon: ICONS.reject }),
+    {
+      reply_markup: new InlineKeyboard()
+        .text(ctx.t('admin-blacklist-btn-ban', { icon: ICONS.reject }), 'blacklist_ban')
+        .text(ctx.t('admin-blacklist-btn-unban', { icon: ICONS.approve }), 'blacklist_unban').row()
+        .text(ctx.t('admin-blacklist-btn-list', { icon: ICONS.list }), 'blacklist_list')
+        .text(ctx.t('admin-blacklist-btn-users', { icon: ICONS.list }), 'blacklist_users'),
+      link_preview_options: disableLinkPreview,
+    },
+  );
+});
+
 bot.callbackQuery('submit_event', async (ctx) => {
   await ctx.answerCallbackQuery();
   await ctx.conversation.enter('submitEventConversation');
@@ -325,6 +367,101 @@ bot.callbackQuery(/^admin_delete_([a-fA-F0-9-]{36})$/, async (ctx) => {
   await ctx.answerCallbackQuery();
   await ctx.conversation.enter('adminDeleteConversation');
   console.log(`Admin entered adminDeleteConversation for Event ID=${eventId}`);
+});
+
+bot.callbackQuery(/^admin_ban_and_delete_([a-fA-F0-9-]{36})$/, adminGroupOnly(), async (ctx) => {
+  const eventId = ctx.match[1];
+  await ctx.answerCallbackQuery();
+  
+  try {
+    // Import necessary functions
+    const { findEventById } = await import('./models/eventModel');
+    const { handleEventDeletion } = await import('./services/eventService');
+    const { banUser } = await import('./services/blacklistService');
+    
+    const event = await findEventById(eventId);
+    
+    if (!event) {
+      await ctx.replyWithMarkdownV2(
+        ctx.t('msg-service-event-not-found'),
+        { link_preview_options: disableLinkPreview },
+      );
+      return;
+    }
+    
+    const userId = event.submittedById;
+    const userName = event.submittedBy;
+    const adminId = ctx.from?.id ? BigInt(ctx.from.id) : undefined;
+    const adminName = ctx.from?.username || ctx.from?.first_name;
+    const reason = 'Event gelöscht durch Admin (Ban & Delete)';
+    
+    // Ban the user first
+    const banSuccess = await banUser(
+      userId,
+      userName,
+      adminId,
+      adminName,
+      reason,
+      ctx,
+    );
+    
+    if (!banSuccess) {
+      await ctx.replyWithMarkdownV2(
+        ctx.t('admin-msg-ban-and-delete-error', { icon: ICONS.reject }),
+        { link_preview_options: disableLinkPreview },
+      );
+      return;
+    }
+    
+    // Then delete the event
+    const deleteSuccess = await handleEventDeletion(eventId, ctx, true);
+    
+    if (deleteSuccess) {
+      await ctx.replyWithMarkdownV2(
+        ctx.t('admin-msg-ban-and-delete-success', {
+          icon: ICONS.approve,
+          userId: escapeMarkdownV2Text(userId.toString()),
+          eventTitle: escapeMarkdownV2Text(event.title),
+        }),
+        { link_preview_options: disableLinkPreview },
+      );
+      console.log(
+        `User banned and event deleted: userId=${userId}, eventId=${eventId}`,
+      );
+    } else {
+      await ctx.replyWithMarkdownV2(
+        ctx.t('admin-msg-ban-and-delete-error', { icon: ICONS.reject }),
+        { link_preview_options: disableLinkPreview },
+      );
+    }
+  } catch (error) {
+    console.error('Error in ban and delete handler:', error);
+    await ctx.replyWithMarkdownV2(
+      ctx.t('admin-msg-ban-and-delete-error', { icon: ICONS.reject }),
+      { link_preview_options: disableLinkPreview },
+    );
+  }
+});
+
+// Blacklist callback handlers
+bot.callbackQuery('blacklist_ban', adminGroupOnly(), async (ctx) => {
+  await ctx.answerCallbackQuery();
+  await ctx.conversation.enter('adminBanUserConversation');
+});
+
+bot.callbackQuery('blacklist_unban', adminGroupOnly(), async (ctx) => {
+  await ctx.answerCallbackQuery();
+  await ctx.conversation.enter('adminUnbanUserConversation');
+});
+
+bot.callbackQuery('blacklist_list', adminGroupOnly(), async (ctx) => {
+  await ctx.answerCallbackQuery();
+  await listBlacklistedUsers(ctx);
+});
+
+bot.callbackQuery('blacklist_users', adminGroupOnly(), async (ctx) => {
+  await ctx.answerCallbackQuery();
+  await listAllEventUsers(ctx);
 });
 
 export function startBot() {
