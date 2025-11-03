@@ -497,3 +497,36 @@ export function startBot() {
     },
   });
 }
+
+// Register bot commands with BotFather menu
+export async function registerBotCommands() {
+  try {
+    const locale = getLocale() || 'de';
+    
+    // Create a temporary i18n instance to get translations
+    const tempI18n = new I18n({
+      defaultLocale: locale,
+      directory: 'locales',
+    });
+
+    // Helper function to get translation
+    const t = (key: string): string => {
+      return tempI18n.t(locale, key);
+    };
+
+    await bot.api.setMyCommands([
+      { command: 'search', description: t('bot-cmd-search') },
+      { command: 'submit', description: t('bot-cmd-submit') },
+      { command: 'edit', description: t('bot-cmd-edit') },
+      { command: 'push', description: t('bot-cmd-push') },
+      { command: 'templates', description: t('bot-cmd-templates') },
+      { command: 'delete', description: t('bot-cmd-delete') },
+      { command: 'rules', description: t('bot-cmd-rules') },
+      { command: 'support', description: t('bot-cmd-support') },
+    ]);
+    
+    console.log('✅ Bot commands registered with BotFather');
+  } catch (error) {
+    console.error('❌ Failed to register bot commands:', error);
+  }
+}

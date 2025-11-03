@@ -1,9 +1,14 @@
 import 'dotenv/config';
-import { startBot } from './bot';
+import { startBot, registerBotCommands } from './bot';
 import { archiveOldEvents } from './jobs/archiveEvents';
 import cron from 'node-cron';
 
 startBot();
+
+// Register bot commands with BotFather
+registerBotCommands().catch((error) => {
+  console.error('Failed to register bot commands on startup:', error);
+});
 
 // cron.schedule('0 0 * * *', () => {
 //   // add midnight cron job

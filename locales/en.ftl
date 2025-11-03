@@ -340,3 +340,37 @@ msg-template-use-summary = { $icon } Here is the data from the template\. You ca
 msg-template-use-date-required = { $icon } Please enter the date for the new event:
 msg-submit-event-links-keep = { $icon } Keep links
 msg-error-user-not-found = { $icon } User not found\.
+# Bot Commands for BotFather (setMyCommands)
+bot-cmd-search = Search for an event
+bot-cmd-submit = Submit a new event
+bot-cmd-edit = Edit an existing event
+bot-cmd-push = Push existing event
+bot-cmd-templates = Use template for event
+bot-cmd-delete = Delete an existing event
+bot-cmd-rules = Read our rules
+bot-cmd-support = Get support
+
+# --- Push Event Feature ---
+bot-entry-event-push-command = Would you like to push one of your events?
+bot-entry-push-cancelled = { $icon } Push cancelled\.
+msg-push-event-no-pushable-events = { $icon } You have no events that can be pushed\.
+msg-push-event-requirements = { $icon } Events can only be pushed if they:
+    • are at least { $minDays } days old
+    • have not been pushed yet
+    • are in the future
+    • are approved
+msg-push-event-select-event = Select the event you want to push:
+msg-push-event-select-title = "{ $title }" \(created on { $createdAt }\)
+msg-push-event-btn-cancel = Cancel { $icon }
+msg-push-event-cancelled = Push cancelled\.
+msg-push-event-not-found-error = Error: Selected event not found\.
+msg-push-event-selected-details = You have selected the following event to push:
+msg-push-event-confirm-prompt = Do you really want to push the event "{ $eventTitle }"? The event will appear as a new message in the channel\.
+msg-push-event-btn-confirm = Yes, push { $icon }
+msg-push-event-error = An error occurred while pushing the event\. { $icon }
+msg-push-event-already-pushed = { $icon } This event has already been pushed and cannot be pushed again\.
+msg-push-event-too-recent = { $icon } This event is not old enough yet\. Events can only be pushed after 7 days\.
+msg-push-event-not-future = { $icon } This event is no longer in the future and cannot be pushed\.
+msg-service-event-pushed-success = { $icon } The event "{ $eventTitle }" was successfully pushed and now appears as the latest message in the channel\.
+msg-service-event-push-error = { $icon } Error pushing the event\. Please try again later or contact support\.
+msg-format-pushed-event-for-admin = { $icon } *Pushed Event*

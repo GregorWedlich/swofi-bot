@@ -407,7 +407,7 @@ admin-msg-ban-and-delete-error = { $icon } Fehler beim Sperren des Users oder L�
 
 # --- Push Event Feature ---
 bot-entry-event-push-command = Möchtest du eines deiner Events pushen?
-bot-entry-push-cancelled = { $icon } Push-Vorgang abgebrochen\.
+bot-entry-push-cancelled = { $icon } Push\-Vorgang abgebrochen\.
 msg-push-event-no-pushable-events = { $icon } Du hast keine Events, die gepusht werden können\.
 msg-push-event-requirements = { $icon } Events können nur gepusht werden, wenn sie:
     • mindestens { $minDays } Tage alt sind
@@ -417,7 +417,7 @@ msg-push-event-requirements = { $icon } Events können nur gepusht werden, wenn 
 msg-push-event-select-event = Wähle das Event aus, das du pushen möchtest:
 msg-push-event-select-title = "{ $title }" \(erstellt am { $createdAt }\)
 msg-push-event-btn-cancel = Abbrechen { $icon }
-msg-push-event-cancelled = Push-Vorgang abgebrochen\.
+msg-push-event-cancelled = Push\-Vorgang abgebrochen\.
 msg-push-event-not-found-error = Fehler: Ausgewähltes Event nicht gefunden\.
 msg-push-event-selected-details = Du hast folgendes Event zum Pushen ausgewählt:
 msg-push-event-confirm-prompt = Möchtest du das Event "{ $eventTitle }" wirklich pushen? Das Event wird als neue Nachricht im Kanal erscheinen\.
@@ -429,3 +429,12 @@ msg-push-event-not-future = { $icon } Dieses Event liegt nicht mehr in der Zukun
 msg-service-event-pushed-success = { $icon } Das Event "{ $eventTitle }" wurde erfolgreich gepusht und erscheint nun als neueste Nachricht im Kanal\.
 msg-service-event-push-error = { $icon } Fehler beim Pushen des Events\. Bitte versuche es später erneut oder kontaktiere den Support\.
 msg-format-pushed-event-for-admin = { $icon } *Gepushtes Event*
+# Bot Commands für BotFather (setMyCommands)
+bot-cmd-search = Event Suche
+bot-cmd-submit = Event einreichen
+bot-cmd-edit = Event bearbeiten
+bot-cmd-push = Event pushen
+bot-cmd-templates = Event Vorlagen
+bot-cmd-delete = Event löschen
+bot-cmd-rules = Regelwerk
+bot-cmd-support = Hilfe & Support
