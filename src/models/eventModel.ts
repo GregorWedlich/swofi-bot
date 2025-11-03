@@ -3,7 +3,7 @@ import { startOfDay, endOfDay } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 
 import { prisma } from '../prisma';
-import { getTimezone } from '../constants/constants';
+import { getTimezone, getPushMinAgeDays } from '../constants/constants';
 
 /**
  * Finds an event by its ID.
@@ -136,6 +136,39 @@ export const findUserApprovedEvents = async (userId: number) => {
       date: {
         gte: new Date(),
       },
+    },
+  });
+};
+
+/**
+ * Find all pushable events for a specific user.
+ * Pushable events must:
+ * - Have status APPROVED or EDITED_APPROVED
+ * - Have endDate in the future
+ * - Be at least X days old (configurable via PUSH_MIN_AGE_DAYS, default 7)
+ * - Have pushedCount === 0 (not pushed yet)
+ */
+export const findUserPushableEvents = async (userId: number) => {
+  const now = new Date();
+  const minAgeDays = getPushMinAgeDays();
+  const minAgeDate = new Date(now.getTime() - minAgeDays * 24 * 60 * 60 * 1000);
+
+  return prisma.event.findMany({
+    where: {
+      submittedById: BigInt(userId),
+      status: {
+        in: ['APPROVED', 'EDITED_APPROVED'],
+      },
+      endDate: {
+        gte: now,
+      },
+      createdAt: {
+        lte: minAgeDate,
+      },
+      pushedCount: 0,
+    },
+    orderBy: {
+      createdAt: 'desc',
     },
   });
 };

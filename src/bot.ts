@@ -31,6 +31,7 @@ import { templateSaveConversation } from './conversations/templateSaveConversati
 import { templateSaveStorage } from './conversations/submitEventConversation';
 import { adminBanUserConversation } from './conversations/adminBanUserConversation';
 import { adminUnbanUserConversation } from './conversations/adminUnbanUserConversation';
+import { pushEventConversation } from './conversations/pushEventConversation';
 import { MyContext } from './types/context';
 import {
   handleEventApproval,
@@ -155,6 +156,7 @@ bot.use(createConversation(templateUseConversation, 'templateUseConversation'));
 bot.use(createConversation(templateSaveConversation, 'templateSaveConversation'));
 bot.use(createConversation(adminBanUserConversation, 'adminBanUserConversation'));
 bot.use(createConversation(adminUnbanUserConversation, 'adminUnbanUserConversation'));
+bot.use(createConversation(pushEventConversation, 'pushEventConversation'));
 
 bot.command('submit', async (ctx) => {
   await ctx.replyWithMarkdownV2(
@@ -195,6 +197,15 @@ bot.command('delete', async (ctx) => {
     reply_markup: new InlineKeyboard()
       .text(ctx.t('bot-entry-yes', { icon: ICONS.approve }), 'start_delete')
       .text(ctx.t('bot-entry-no', { icon: ICONS.reject }), 'cancel_delete'),
+    link_preview_options: disableLinkPreview,
+  });
+});
+
+bot.command('push', async (ctx) => {
+  await ctx.replyWithMarkdownV2(ctx.t('bot-entry-event-push-command'), {
+    reply_markup: new InlineKeyboard()
+      .text(ctx.t('bot-entry-yes', { icon: ICONS.approve }), 'start_push')
+      .text(ctx.t('bot-entry-no', { icon: ICONS.reject }), 'cancel_push'),
     link_preview_options: disableLinkPreview,
   });
 });
@@ -317,6 +328,19 @@ bot.callbackQuery('cancel_delete', async (ctx) => {
   await ctx.answerCallbackQuery();
   await ctx.replyWithMarkdownV2(
     ctx.t('bot-entry-delete-cancelled', { icon: ICONS.reject }),
+    { link_preview_options: disableLinkPreview },
+  );
+});
+
+bot.callbackQuery('start_push', async (ctx) => {
+  await ctx.answerCallbackQuery();
+  await ctx.conversation.enter('pushEventConversation');
+});
+
+bot.callbackQuery('cancel_push', async (ctx) => {
+  await ctx.answerCallbackQuery();
+  await ctx.replyWithMarkdownV2(
+    ctx.t('bot-entry-push-cancelled', { icon: ICONS.reject }),
     { link_preview_options: disableLinkPreview },
   );
 });

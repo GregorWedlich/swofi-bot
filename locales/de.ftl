@@ -404,3 +404,28 @@ admin-blacklist-unban-invalid-id = { $icon } Ungültige User ID\!
 admin-btn-ban-and-delete = { $icon } Sperren & Löschen
 admin-msg-ban-and-delete-success = { $icon } User { $userId } wurde gesperrt und Event "{ $eventTitle }" wurde gelöscht\.
 admin-msg-ban-and-delete-error = { $icon } Fehler beim Sperren des Users oder Löschen des Events\.
+
+# --- Push Event Feature ---
+bot-entry-event-push-command = Möchtest du eines deiner Events pushen?
+bot-entry-push-cancelled = { $icon } Push-Vorgang abgebrochen\.
+msg-push-event-no-pushable-events = { $icon } Du hast keine Events, die gepusht werden können\.
+msg-push-event-requirements = { $icon } Events können nur gepusht werden, wenn sie:
+    • mindestens { $minDays } Tage alt sind
+    • noch nicht gepusht wurden
+    • in der Zukunft liegen
+    • genehmigt sind
+msg-push-event-select-event = Wähle das Event aus, das du pushen möchtest:
+msg-push-event-select-title = "{ $title }" \(erstellt am { $createdAt }\)
+msg-push-event-btn-cancel = Abbrechen { $icon }
+msg-push-event-cancelled = Push-Vorgang abgebrochen\.
+msg-push-event-not-found-error = Fehler: Ausgewähltes Event nicht gefunden\.
+msg-push-event-selected-details = Du hast folgendes Event zum Pushen ausgewählt:
+msg-push-event-confirm-prompt = Möchtest du das Event "{ $eventTitle }" wirklich pushen? Das Event wird als neue Nachricht im Kanal erscheinen\.
+msg-push-event-btn-confirm = Ja, pushen { $icon }
+msg-push-event-error = Ein Fehler ist beim Pushen des Events aufgetreten\. { $icon }
+msg-push-event-already-pushed = { $icon } Dieses Event wurde bereits gepusht und kann nicht erneut gepusht werden\.
+msg-push-event-too-recent = { $icon } Dieses Event ist noch nicht alt genug\. Events können erst nach 7 Tagen gepusht werden\.
+msg-push-event-not-future = { $icon } Dieses Event liegt nicht mehr in der Zukunft und kann nicht gepusht werden\.
+msg-service-event-pushed-success = { $icon } Das Event "{ $eventTitle }" wurde erfolgreich gepusht und erscheint nun als neueste Nachricht im Kanal\.
+msg-service-event-push-error = { $icon } Fehler beim Pushen des Events\. Bitte versuche es später erneut oder kontaktiere den Support\.
+msg-format-pushed-event-for-admin = { $icon } *Gepushtes Event*

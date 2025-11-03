@@ -34,6 +34,8 @@ model Event {
   rejectionReason String?
   messageId       BigInt?
   updatedCount    Int          @default(0)
+  pushedAt        DateTime?
+  pushedCount     Int          @default(0)
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
        // Neues optionales Feld für den Gruppenlink
@@ -61,6 +63,8 @@ model EventArchive {
   rejectionReason String?
   messageId       BigInt?
   updatedCount    Int          @default(0)
+  pushedAt        DateTime?
+  pushedCount     Int          @default(0)
   createdAt       DateTime     @default(now())
   updatedAt       DateTime
 

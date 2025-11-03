@@ -3,7 +3,7 @@ import { Readable } from 'stream';
 import { Event } from '@prisma/client';
 
 import { bot } from '../bot';
-import { getAdminChatId, getChannelUsername } from '../constants/constants';
+import { getAdminChatId, getChannelUsername, getPushMinAgeDays } from '../constants/constants';
 import { publishEvent } from '../controllers/eventController';
 import {
   approveEvent,
@@ -650,6 +650,230 @@ export async function sendSearchToUser(
   } catch (error) {
     console.error(
       `General error in sendSearchToUser for chatId=${chatId}:`,
+      error,
+    );
+  }
+}
+
+/**
+ * Handles pushing an event to reappear as the newest message in the channel.
+ * Validates that the event meets all push criteria, then:
+ * 1. Deletes the old channel message
+ * 2. Posts a new message with the same content
+ * 3. Updates pushedAt and pushedCount in database
+ * 4. Sends admin notification with push indicator
+ */
+export async function handleEventPush(
+  eventId: string,
+  ctx: MyContext,
+): Promise<boolean> {
+  try {
+    const event = await findEventById(eventId);
+
+    if (!event) {
+      await ctx.replyWithMarkdownV2(ctx.t('msg-service-event-not-found'), {
+        link_preview_options: disableLinkPreview,
+      });
+      console.warn(`Event not found for push: ID=${eventId}`);
+      return false;
+    }
+
+    // Validate push criteria
+    const now = new Date();
+    const minAgeDays = getPushMinAgeDays();
+    const minAgeDate = new Date(now.getTime() - minAgeDays * 24 * 60 * 60 * 1000);
+
+
+    // Check if already pushed
+    if (event.pushedCount > 0) {
+      await ctx.replyWithMarkdownV2(
+        ctx.t('msg-push-event-already-pushed', { icon: ICONS.reject }),
+        { link_preview_options: disableLinkPreview },
+      );
+      return false;
+    }
+
+    // Check if at least X days old (configurable via PUSH_MIN_AGE_DAYS)
+    if (event.createdAt > minAgeDate) {
+      await ctx.replyWithMarkdownV2(
+        ctx.t('msg-push-event-too-recent', { icon: ICONS.reject }),
+        { link_preview_options: disableLinkPreview },
+      );
+      return false;
+    }
+
+    // Check if event is in the future
+    if (event.endDate < now) {
+      await ctx.replyWithMarkdownV2(
+        ctx.t('msg-push-event-not-future', { icon: ICONS.reject }),
+        { link_preview_options: disableLinkPreview },
+      );
+      return false;
+    }
+
+    // Delete old message from channel
+    if (event.messageId) {
+      try {
+        await bot.api.deleteMessage(
+          getChannelUsername(),
+          Number(event.messageId),
+        );
+        console.log(
+          `Old message deleted from channel for push: Event ID=${eventId}, messageId=${event.messageId}`,
+        );
+      } catch (error) {
+        console.error(
+          `Error deleting old message for push: Event ID=${eventId}, messageId=${event.messageId}:`,
+          error,
+        );
+      }
+    }
+
+    // Post new message to channel
+    const messageText = formatEvent(ctx, event, { context: 'channel' });
+
+    let newMessageId: number | undefined;
+
+    if (event.imageBase64) {
+      const imageBuffer = Buffer.from(event.imageBase64, 'base64');
+      const stream = Readable.from(imageBuffer);
+
+      try {
+        const sentMessage = await bot.api.sendPhoto(
+          getChannelUsername(),
+          new InputFile(stream),
+          {
+            caption: messageText,
+            parse_mode: 'MarkdownV2',
+          },
+        );
+        newMessageId = sentMessage.message_id;
+        console.log(
+          `Pushed photo posted to channel: Event ID=${eventId}, new messageId=${newMessageId}`,
+        );
+      } catch (error) {
+        console.error(
+          `Error posting pushed photo to channel for Event ID=${eventId}:`,
+          error,
+        );
+        return false;
+      }
+    } else {
+      try {
+        const sentMessage = await bot.api.sendMessage(
+          getChannelUsername(),
+          messageText,
+          {
+            parse_mode: 'MarkdownV2',
+            link_preview_options: disableLinkPreview,
+          },
+        );
+        newMessageId = sentMessage.message_id;
+        console.log(
+          `Pushed message posted to channel: Event ID=${eventId}, new messageId=${newMessageId}`,
+        );
+      } catch (error) {
+        console.error(
+          `Error posting pushed message to channel for Event ID=${eventId}:`,
+          error,
+        );
+        return false;
+      }
+    }
+
+    // Update event in database
+    const updatedEvent = await updateEvent(eventId, {
+      messageId: newMessageId ? BigInt(newMessageId) : event.messageId,
+      pushedAt: now,
+      pushedCount: 1,
+    });
+
+    // Send admin notification with push indicator
+    await postAdminPushNotification(ctx, updatedEvent);
+
+    // Confirm to user
+    await ctx.replyWithMarkdownV2(
+      ctx.t('msg-service-event-pushed-success', {
+        icon: ICONS.approve,
+        eventTitle: escapeMarkdownV2Text(event.title),
+      }),
+      { link_preview_options: disableLinkPreview },
+    );
+
+    console.log(`Event pushed successfully: ID=${eventId}`);
+    return true;
+  } catch (error) {
+    console.error(`Error pushing event ID=${eventId}:`, error);
+    await ctx.replyWithMarkdownV2(
+      ctx.t('msg-service-event-push-error', { icon: ICONS.reject }),
+      { link_preview_options: disableLinkPreview },
+    );
+    return false;
+  }
+}
+
+/**
+ * Posts a notification to the admin group indicating that an event was pushed.
+ */
+async function postAdminPushNotification(
+  ctx: MyContext,
+  event: Event,
+): Promise<void> {
+  try {
+    const pushIndicator =
+      ctx.t('msg-format-pushed-event-for-admin', { icon: '🔄' }) + '\n\n';
+    const messageText = pushIndicator + formatEvent(ctx, event, { context: 'admin' });
+    
+    const adminKeyboard = new InlineKeyboard()
+      .text(
+        ctx.t('admin-btn-delete', { icon: ICONS.reject }),
+        `admin_delete_${event.id}`,
+      )
+      .text(
+        ctx.t('admin-btn-ban-and-delete', { icon: ICONS.reject }),
+        `admin_ban_and_delete_${event.id}`,
+      );
+
+    const adminChatId = getAdminChatId();
+
+    if (event.imageBase64) {
+      const imageBuffer = Buffer.from(event.imageBase64, 'base64');
+      const stream = Readable.from(imageBuffer);
+      try {
+        await bot.api.sendPhoto(adminChatId, new InputFile(stream), {
+          caption: messageText,
+          parse_mode: 'MarkdownV2',
+          reply_markup: adminKeyboard,
+        });
+        console.log(
+          `Admin push notification (photo) sent for Event ID=${event.id}`,
+        );
+      } catch (error) {
+        console.error(
+          `Error sending admin push notification photo for Event ID=${event.id}:`,
+          error,
+        );
+      }
+    } else {
+      try {
+        await bot.api.sendMessage(adminChatId, messageText, {
+          parse_mode: 'MarkdownV2',
+          reply_markup: adminKeyboard,
+          link_preview_options: disableLinkPreview,
+        });
+        console.log(
+          `Admin push notification (text) sent for Event ID=${event.id}`,
+        );
+      } catch (error) {
+        console.error(
+          `Error sending admin push notification text for Event ID=${event.id}:`,
+          error,
+        );
+      }
+    }
+  } catch (error) {
+    console.error(
+      `General error in postAdminPushNotification for Event ID=${event.id}:`,
       error,
     );
   }

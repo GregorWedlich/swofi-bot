@@ -71,3 +71,7 @@ export function getSupportTelegramUser(): string | undefined {
 export function getRules(): string | undefined {
   return process.env.RULES || undefined;
 }
+
+export function getPushMinAgeDays(): number {
+  return parseInt(process.env.PUSH_MIN_AGE_DAYS || '7', 10);
+}

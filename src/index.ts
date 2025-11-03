@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { startBot } from './bot';
 import { archiveOldEvents } from './jobs/archiveEvents';
 import cron from 'node-cron';
