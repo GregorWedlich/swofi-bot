@@ -19,6 +19,9 @@ bot-entry-templates-cancelled = { $icon } Vorlagen\-Ansicht abgebrochen\.
 msg-conversation-cancelled-btn = { $icon } Abbrechen
 msg-conversation-cancelled = Das Gespräch wurde abgebrochen\.
 msg-conversation-skipped = Das Gespräch wurde übersprungen\.
+msg-conversation-cancel-confirm-question = Bist du sicher, dass du abbrechen möchtest?
+msg-conversation-cancel-confirm-yes = { $icon } Ja, abbrechen
+msg-conversation-cancel-confirm-no = { $icon } Nein, fortfahren
 
 # Fehlerbehandlung Bot API
 bot-entry-error-bad-request = Deine Anfrage enthält ungültige Daten \(Fehlercode: { $errorcode }\)\. Bitte überprüfe deine Eingaben und versuche es erneut\.

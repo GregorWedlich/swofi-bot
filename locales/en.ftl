@@ -26,6 +26,9 @@ msg-support-no-contact = { $icon } Currently, no direct contact options are conf
 msg-conversation-cancelled-btn = { $icon } Cancel
 msg-conversation-cancelled = The conversation has been cancelled\.
 msg-conversation-skipped = The conversation has been skipped\.
+msg-conversation-cancel-confirm-question = Are you sure you want to cancel?
+msg-conversation-cancel-confirm-yes = { $icon } Yes, cancel
+msg-conversation-cancel-confirm-no = { $icon } No, continue
 
 # error handling bot api
 bot-entry-error-bad-request = Your request contains invalid data \(Error code: { $errorcode }\)\. Please check your input and try again\.

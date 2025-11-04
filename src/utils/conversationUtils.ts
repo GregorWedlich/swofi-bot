@@ -1,6 +1,7 @@
 import { InlineKeyboard, InputFile } from 'grammy';
 import { Prisma, Event } from '@prisma/client';
 import { Readable } from 'stream';
+import { Conversation } from '@grammyjs/conversations';
 
 import { MyContext } from '../types/context';
 import { formatEvent } from './eventMessageFormatter';
@@ -119,4 +120,49 @@ export async function displayEventSummaryWithOptions(
       link_preview_options: disableLinkPreview,
     });
   }
+}
+
+/**
+ * Asks the user to confirm cancellation of the conversation.
+ * Returns true if user confirms cancellation, false if user wants to continue.
+ *
+ * @param ctx The context object.
+ * @param conversation The conversation object.
+ * @returns Promise<boolean> - true if user wants to cancel, false if user wants to continue
+ */
+export async function confirmCancellation(
+  ctx: MyContext,
+  conversation: Conversation<MyContext>,
+): Promise<boolean> {
+  const keyboard = new InlineKeyboard()
+    .text(
+      ctx.t('msg-conversation-cancel-confirm-yes', { icon: ICONS.reject }),
+      'confirm_cancel',
+    )
+    .row()
+    .text(
+      ctx.t('msg-conversation-cancel-confirm-no', { icon: ICONS.approve }),
+      'continue_conversation',
+    );
+
+  await ctx.replyWithMarkdownV2(
+    ctx.t('msg-conversation-cancel-confirm-question'),
+    {
+      reply_markup: keyboard,
+      link_preview_options: disableLinkPreview,
+    },
+  );
+
+  const response = await conversation.wait();
+
+  if (response.callbackQuery?.data === 'confirm_cancel') {
+    await response.answerCallbackQuery();
+    return true;
+  } else if (response.callbackQuery?.data === 'continue_conversation') {
+    await response.answerCallbackQuery();
+    return false;
+  }
+
+  // Fallback: treat any other response as continue
+  return false;
 }

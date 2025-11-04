@@ -3,7 +3,10 @@ import { InlineKeyboard } from 'grammy';
 import { parse } from 'date-fns';
 import { fromZonedTime, formatInTimeZone } from 'date-fns-tz';
 import { Event } from '@prisma/client';
-import { displayEventSummaryWithOptions } from '../utils/conversationUtils';
+import {
+  displayEventSummaryWithOptions,
+  confirmCancellation,
+} from '../utils/conversationUtils';
 
 import {
   sendEventToAdmins,
@@ -277,7 +280,11 @@ async function collectEventTitle(
       if (response.callbackQuery?.data === 'cancel_conversation') {
         console.log('collectEventTitle: Cancel button pressed'); // Add log
         await response.answerCallbackQuery();
-        return false;
+        const shouldCancel = await confirmCancellation(ctx, conversation);
+        if (shouldCancel) {
+          return false;
+        }
+        continue;
       }
 
       if (response.message?.text) {
@@ -333,7 +340,11 @@ async function collectEventDescription(
 
       if (response.callbackQuery?.data === 'cancel_conversation') {
         await response.answerCallbackQuery();
-        return false;
+        const shouldCancel = await confirmCancellation(ctx, conversation);
+        if (shouldCancel) {
+          return false;
+        }
+        continue;
       }
 
       if (response.message?.text) {
@@ -379,7 +390,11 @@ async function collectEventLocation(
 
       if (response.callbackQuery?.data === 'cancel_conversation') {
         await response.answerCallbackQuery();
-        return false;
+        const shouldCancel = await confirmCancellation(ctx, conversation);
+        if (shouldCancel) {
+          return false;
+        }
+        continue;
       }
 
       if (response.message?.text) {
@@ -433,7 +448,11 @@ async function collectEventDates(
         const entryResponse = await conversation.wait();
         if (entryResponse.callbackQuery?.data === 'cancel_conversation') {
           await entryResponse.answerCallbackQuery();
-          return false;
+          const shouldCancel = await confirmCancellation(ctx, conversation);
+          if (shouldCancel) {
+            return false;
+          }
+          continue;
         }
         if (entryResponse.message?.text) {
           const parsed = parse(
@@ -483,7 +502,11 @@ async function collectEventDates(
         const startResponse = await conversation.wait();
         if (startResponse.callbackQuery?.data === 'cancel_conversation') {
           await startResponse.answerCallbackQuery();
-          return false;
+          const shouldCancel = await confirmCancellation(ctx, conversation);
+          if (shouldCancel) {
+            return false;
+          }
+          continue;
         }
         if (startResponse.message?.text) {
           const parsed = parse(
@@ -542,7 +565,11 @@ async function collectEventDates(
         const endResponse = await conversation.wait();
         if (endResponse.callbackQuery?.data === 'cancel_conversation') {
           await endResponse.answerCallbackQuery();
-          return false;
+          const shouldCancel = await confirmCancellation(ctx, conversation);
+          if (shouldCancel) {
+            return false;
+          }
+          continue;
         }
         if (endResponse.message?.text) {
           const parsed = parse(
@@ -648,7 +675,11 @@ async function collectEventDates(
 
       if (confirmResponse.callbackQuery.data === 'cancel_conversation') {
         await confirmResponse.answerCallbackQuery();
-        return false;
+        const shouldCancel = await confirmCancellation(ctx, conversation);
+        if (shouldCancel) {
+          return false;
+        }
+        continue;
       }
 
       if (confirmResponse.callbackQuery.data === 'dates_confirm') {
@@ -810,7 +841,11 @@ async function collectEventCategories(
     );
     if (categoryResponse.callbackQuery.data === 'cancel_conversation') {
       await categoryResponse.answerCallbackQuery();
-      return false;
+      const shouldCancel = await confirmCancellation(ctx, conversation);
+      if (shouldCancel) {
+        return false;
+      }
+      continue;
     }
     const selection = categoryResponse.callbackQuery.data.replace('cat_', '');
 
@@ -907,7 +942,11 @@ async function collectEventLinks(
 
       if (response.callbackQuery?.data === 'cancel_conversation') {
         await response.answerCallbackQuery();
-        return false;
+        const shouldCancel = await confirmCancellation(ctx, conversation);
+        if (shouldCancel) {
+          return false;
+        }
+        continue;
       } else if (response.callbackQuery?.data === 'no_links') {
         await response.answerCallbackQuery();
         eventData.links = [];
@@ -967,7 +1006,11 @@ async function collectEventGroupLink(
 
       if (response.callbackQuery?.data === 'cancel_conversation') {
         await response.answerCallbackQuery();
-        return false;
+        const shouldCancel = await confirmCancellation(ctx, conversation);
+        if (shouldCancel) {
+          return false;
+        }
+        continue;
       } else if (response.callbackQuery?.data === 'no_group_link') {
         await response.answerCallbackQuery();
         eventData.groupLink = null;
@@ -1019,7 +1062,11 @@ async function collectEventImage(
 
       if (imageResponse.callbackQuery?.data === 'cancel_conversation') {
         await imageResponse.answerCallbackQuery();
-        return false;
+        const shouldCancel = await confirmCancellation(ctx, conversation);
+        if (shouldCancel) {
+          return false;
+        }
+        continue;
       } else if (imageResponse.callbackQuery?.data === 'no_image') {
         await imageResponse.answerCallbackQuery();
         eventData.imageBase64 = null;

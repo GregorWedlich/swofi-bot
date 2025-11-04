@@ -19,7 +19,10 @@ import { ICONS } from '../utils/iconUtils';
 import { getLocaleUtil } from '../utils/localeUtils';
 import { createCancelKeyboard } from '../utils/keyboardUtils';
 import { escapeMarkdownV2Text } from '../utils/markdownUtils';
-import { displayEventSummaryWithOptions } from '../utils/conversationUtils';
+import {
+  displayEventSummaryWithOptions,
+  confirmCancellation,
+} from '../utils/conversationUtils';
 
 const locale = getLocaleUtil();
 
@@ -237,13 +240,14 @@ async function collectEventTitle(
 
       if (response.callbackQuery?.data === 'cancel_conversation') {
         await response.answerCallbackQuery();
-        await response.replyWithMarkdownV2(
-          ctx.t('msg-conversation-cancelled'),
-          {
+        const shouldCancel = await confirmCancellation(ctx, conversation);
+        if (shouldCancel) {
+          await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'), {
             link_preview_options: disableLinkPreview,
-          },
-        );
-        return false;
+          });
+          return false;
+        }
+        continue;
       }
 
       if (response.message?.text) {
@@ -292,13 +296,14 @@ async function collectEventDescription(
 
       if (response.callbackQuery?.data === 'cancel_conversation') {
         await response.answerCallbackQuery();
-        await response.replyWithMarkdownV2(
-          ctx.t('msg-conversation-cancelled'),
-          {
+        const shouldCancel = await confirmCancellation(ctx, conversation);
+        if (shouldCancel) {
+          await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'), {
             link_preview_options: disableLinkPreview,
-          },
-        );
-        return false;
+          });
+          return false;
+        }
+        continue;
       }
 
       if (response.message?.text) {
@@ -347,13 +352,14 @@ async function collectEventLocation(
 
       if (response.callbackQuery?.data === 'cancel_conversation') {
         await response.answerCallbackQuery();
-        await response.replyWithMarkdownV2(
-          ctx.t('msg-conversation-cancelled'),
-          {
+        const shouldCancel = await confirmCancellation(ctx, conversation);
+        if (shouldCancel) {
+          await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'), {
             link_preview_options: disableLinkPreview,
-          },
-        );
-        return false;
+          });
+          return false;
+        }
+        continue;
       }
 
       if (response.message?.text) {
@@ -411,13 +417,14 @@ async function collectEventDates(
 
         if (entryResponse.callbackQuery?.data === 'cancel_conversation') {
           await entryResponse.answerCallbackQuery();
-          await entryResponse.replyWithMarkdownV2(
-            ctx.t('msg-conversation-cancelled'),
-            {
+          const shouldCancel = await confirmCancellation(ctx, conversation);
+          if (shouldCancel) {
+            await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'), {
               link_preview_options: disableLinkPreview,
-            },
-          );
-          return false;
+            });
+            return false;
+          }
+          continue;
         }
 
         if (!entryResponse.message?.text) continue;
@@ -475,13 +482,14 @@ async function collectEventDates(
 
         if (startResponse.callbackQuery?.data === 'cancel_conversation') {
           await startResponse.answerCallbackQuery();
-          await startResponse.replyWithMarkdownV2(
-            ctx.t('msg-conversation-cancelled'),
-            {
+          const shouldCancel = await confirmCancellation(ctx, conversation);
+          if (shouldCancel) {
+            await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'), {
               link_preview_options: disableLinkPreview,
-            },
-          );
-          return false;
+            });
+            return false;
+          }
+          continue;
         }
 
         if (!startResponse.message?.text) continue;
@@ -553,13 +561,14 @@ async function collectEventDates(
 
         if (endResponse.callbackQuery?.data === 'cancel_conversation') {
           await endResponse.answerCallbackQuery();
-          await endResponse.replyWithMarkdownV2(
-            ctx.t('msg-conversation-cancelled'),
-            {
+          const shouldCancel = await confirmCancellation(ctx, conversation);
+          if (shouldCancel) {
+            await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'), {
               link_preview_options: disableLinkPreview,
-            },
-          );
-          return false;
+            });
+            return false;
+          }
+          continue;
         }
 
         if (!endResponse.message?.text) continue;
@@ -828,10 +837,14 @@ async function collectEventCategories(
 
       if (response.callbackQuery.data === 'cancel_conversation') {
         await response.answerCallbackQuery();
-        await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'), {
-          link_preview_options: disableLinkPreview,
-        });
-        return false;
+        const shouldCancel = await confirmCancellation(ctx, conversation);
+        if (shouldCancel) {
+          await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'), {
+            link_preview_options: disableLinkPreview,
+          });
+          return false;
+        }
+        continue;
       }
 
       const selection = response.callbackQuery.data.replace('cat_', '');
@@ -954,13 +967,14 @@ async function collectEventLinks(
 
       if (response.callbackQuery?.data === 'cancel_conversation') {
         await response.answerCallbackQuery();
-        await response.replyWithMarkdownV2(
-          ctx.t('msg-conversation-cancelled'),
-          {
+        const shouldCancel = await confirmCancellation(ctx, conversation);
+        if (shouldCancel) {
+          await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'), {
             link_preview_options: disableLinkPreview,
-          },
-        );
-        return false;
+          });
+          return false;
+        }
+        continue;
       } else if (response.callbackQuery?.data === 'no_links') {
         await response.answerCallbackQuery();
         eventData.links = [];
@@ -1044,10 +1058,14 @@ async function collectEventGroupLink(
 
       if (response.callbackQuery?.data === 'cancel_conversation') {
         await response.answerCallbackQuery();
-        await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'), {
-          link_preview_options: disableLinkPreview,
-        });
-        return false;
+        const shouldCancel = await confirmCancellation(ctx, conversation);
+        if (shouldCancel) {
+          await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'), {
+            link_preview_options: disableLinkPreview,
+          });
+          return false;
+        }
+        continue;
       } else if (response.callbackQuery?.data === 'no_group_link') {
         await response.answerCallbackQuery();
         eventData.groupLink = null;
@@ -1112,13 +1130,14 @@ async function collectEventImage(
 
       if (imageResponse.callbackQuery?.data === 'cancel_conversation') {
         await imageResponse.answerCallbackQuery();
-        await imageResponse.replyWithMarkdownV2(
-          ctx.t('msg-conversation-cancelled'),
-          {
+        const shouldCancel = await confirmCancellation(ctx, conversation);
+        if (shouldCancel) {
+          await ctx.replyWithMarkdownV2(ctx.t('msg-conversation-cancelled'), {
             link_preview_options: disableLinkPreview,
-          },
-        );
-        return false;
+          });
+          return false;
+        }
+        continue;
       } else if (imageResponse.callbackQuery?.data === 'no_image') {
         await imageResponse.answerCallbackQuery();
         eventData.imageBase64 = null;

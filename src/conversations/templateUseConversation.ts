@@ -19,7 +19,10 @@ import { ICONS } from '../utils/iconUtils';
 import { createCancelKeyboard } from '../utils/keyboardUtils';
 import { getLocaleUtil } from '../utils/localeUtils';
 import { escapeMarkdownV2Text } from '../utils/markdownUtils';
-import { displayEventSummaryWithOptions } from '../utils/conversationUtils';
+import {
+  displayEventSummaryWithOptions,
+  confirmCancellation,
+} from '../utils/conversationUtils';
 
 const disableLinkPreview = {
   is_disabled: true,
@@ -216,7 +219,11 @@ async function editEventTitle(
 
   if (response.callbackQuery?.data === 'cancel_conversation') {
     await response.answerCallbackQuery();
-    return false;
+    const shouldCancel = await confirmCancellation(ctx, conversation);
+    if (shouldCancel) {
+      return false;
+    }
+    return await editEventTitle(conversation, ctx, eventData);
   }
 
   if (response.message?.text) {
@@ -250,7 +257,11 @@ async function editEventDescription(
 
   if (response.callbackQuery?.data === 'cancel_conversation') {
     await response.answerCallbackQuery();
-    return false;
+    const shouldCancel = await confirmCancellation(ctx, conversation);
+    if (shouldCancel) {
+      return false;
+    }
+    return await editEventDescription(conversation, ctx, eventData);
   }
 
   if (response.message?.text) {
@@ -284,7 +295,11 @@ async function editEventLocation(
 
   if (response.callbackQuery?.data === 'cancel_conversation') {
     await response.answerCallbackQuery();
-    return false;
+    const shouldCancel = await confirmCancellation(ctx, conversation);
+    if (shouldCancel) {
+      return false;
+    }
+    return await editEventLocation(conversation, ctx, eventData);
   }
 
   if (response.message?.text) {
@@ -340,7 +355,11 @@ async function editEventLinks(
 
   if (response.callbackQuery?.data === 'cancel_conversation') {
     await response.answerCallbackQuery();
-    return false;
+    const shouldCancel = await confirmCancellation(ctx, conversation);
+    if (shouldCancel) {
+      return false;
+    }
+    return await editEventLinks(conversation, ctx, eventData);
   }
 
   if (response.callbackQuery?.data === 'keep_links') {
@@ -396,13 +415,17 @@ async function collectEventDates(
 
         if (entryResponse.callbackQuery?.data === 'cancel_conversation') {
           await entryResponse.answerCallbackQuery();
-          await entryResponse.replyWithMarkdownV2(
-            ctx.t('msg-conversation-cancelled'),
-            {
-              link_preview_options: disableLinkPreview,
-            },
-          );
-          return false;
+          const shouldCancel = await confirmCancellation(ctx, conversation);
+          if (shouldCancel) {
+            await entryResponse.replyWithMarkdownV2(
+              ctx.t('msg-conversation-cancelled'),
+              {
+                link_preview_options: disableLinkPreview,
+              },
+            );
+            return false;
+          }
+          continue;
         }
 
         if (!entryResponse.message?.text) continue;
@@ -460,13 +483,17 @@ async function collectEventDates(
 
         if (startResponse.callbackQuery?.data === 'cancel_conversation') {
           await startResponse.answerCallbackQuery();
-          await startResponse.replyWithMarkdownV2(
-            ctx.t('msg-conversation-cancelled'),
-            {
-              link_preview_options: disableLinkPreview,
-            },
-          );
-          return false;
+          const shouldCancel = await confirmCancellation(ctx, conversation);
+          if (shouldCancel) {
+            await startResponse.replyWithMarkdownV2(
+              ctx.t('msg-conversation-cancelled'),
+              {
+                link_preview_options: disableLinkPreview,
+              },
+            );
+            return false;
+          }
+          continue;
         }
 
         if (!startResponse.message?.text) continue;
@@ -538,13 +565,17 @@ async function collectEventDates(
 
         if (endResponse.callbackQuery?.data === 'cancel_conversation') {
           await endResponse.answerCallbackQuery();
-          await endResponse.replyWithMarkdownV2(
-            ctx.t('msg-conversation-cancelled'),
-            {
-              link_preview_options: disableLinkPreview,
-            },
-          );
-          return false;
+          const shouldCancel = await confirmCancellation(ctx, conversation);
+          if (shouldCancel) {
+            await endResponse.replyWithMarkdownV2(
+              ctx.t('msg-conversation-cancelled'),
+              {
+                link_preview_options: disableLinkPreview,
+              },
+            );
+            return false;
+          }
+          continue;
         }
 
         if (!endResponse.message?.text) continue;
