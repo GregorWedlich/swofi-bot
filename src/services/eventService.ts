@@ -600,7 +600,7 @@ export async function sendSearchToUser(
             await ctx.reply(
               ctx.t('msg-service-search-photo-error', {
                 icon: ICONS.reject,
-                eventId: event.id,
+                eventId: escapeMarkdownV2Text(event.id),
               }),
               {
                 link_preview_options: disableLinkPreview,
@@ -622,7 +622,7 @@ export async function sendSearchToUser(
             await ctx.reply(
               ctx.t('msg-service-search-message-error', {
                 icon: ICONS.reject,
-                eventId: event.id,
+                eventId: escapeMarkdownV2Text(event.id),
               }),
               {
                 link_preview_options: disableLinkPreview,
@@ -638,7 +638,7 @@ export async function sendSearchToUser(
         await ctx.reply(
           ctx.t('msg-service-search-process-error', {
             icon: ICONS.reject,
-            eventId: event.id,
+            eventId: escapeMarkdownV2Text(event.id),
           }),
           {
             link_preview_options: disableLinkPreview,

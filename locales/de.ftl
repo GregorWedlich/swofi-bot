@@ -249,9 +249,9 @@ msg-service-event-text-edit-success = Nachricht im Kanal bearbeitet für Veranst
 msg-service-event-process-error = Fehler beim Verarbeiten der Veranstaltung ID=\{ $eventId \}\.
 msg-service-search-no-events = Keine Veranstaltungen für { $dateText }\.
 msg-service-search-error = { $icon } Fehler beim Senden der Suchergebnisse\.
-msg-service-search-photo-error = { $icon } Fehler beim Senden des Fotos für Veranstaltung ID={ $eventId }\.
-msg-service-search-message-error = { $icon } Fehler beim Senden der Nachricht für Veranstaltung ID={ $eventId }\.
-msg-service-search-process-error = { $icon } Fehler bei der Verarbeitung der Veranstaltung ID={ $eventId }\.
+msg-service-search-photo-error = { $icon } Fehler beim Senden des Fotos für Veranstaltung ID\={ $eventId }\.
+msg-service-search-message-error = { $icon } Fehler beim Senden der Nachricht für Veranstaltung ID\={ $eventId }\.
+msg-service-search-process-error = { $icon } Fehler bei der Verarbeitung der Veranstaltung ID\={ $eventId }\.
 
 # /src/conversations/searchEventConversation.ts
 msg-search-event-title = { $icon } Wähle eine Suchoption\:

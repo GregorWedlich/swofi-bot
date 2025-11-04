@@ -241,9 +241,9 @@ msg-service-search-error = Error sending search results to user\.
 msg-service-event-process-error = Error processing Event ID=\{ $eventId \}\.
 msg-service-search-no-events = No events for { $dateText }\.
 msg-service-search-error = { $icon } Error sending search results\.
-msg-service-search-photo-error = { $icon } Error sending photo for Event ID={ $eventId }\.
-msg-service-search-message-error = { $icon } Error sending message for Event ID={ $eventId }\.
-msg-service-search-process-error = { $icon } Error processing Event ID={ $eventId }\.
+msg-service-search-photo-error = { $icon } Error sending photo for Event ID\={ $eventId }\.
+msg-service-search-message-error = { $icon } Error sending message for Event ID\={ $eventId }\.
+msg-service-search-process-error = { $icon } Error processing Event ID\={ $eventId }\.
 
 # /src/conversations/searchEventConversation.ts
 msg-search-event-title = { $icon } Choose a search option:
