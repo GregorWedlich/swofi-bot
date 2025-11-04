@@ -187,7 +187,8 @@ export async function templateListConversation(
     } else if (actionResponse.callbackQuery?.data === 'back_to_list') {
       await actionResponse.answerCallbackQuery();
       // Restart the conversation to show the list again
-      await ctx.conversation.reenter('templateListConversation');
+      await templateListConversation(conversation, ctx);
+      return;
     }
   }
 }
