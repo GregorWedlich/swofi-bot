@@ -895,6 +895,7 @@ async function collectEventLinks(
               ctx.t('msg-submit-event-links-no-btn', { icon: ICONS.next }),
               'no_links',
             )
+            .row()
             .text(
               ctx.t('msg-conversation-cancelled-btn', { icon: ICONS.reject }),
               'cancel_conversation',
@@ -954,6 +955,7 @@ async function collectEventGroupLink(
               ctx.t('msg-submit-event-links-no-btn', { icon: ICONS.next }),
               'no_group_link',
             )
+            .row()
             .text(
               ctx.t('msg-conversation-cancelled-btn', { icon: ICONS.reject }),
               'cancel_conversation',
@@ -1005,6 +1007,7 @@ async function collectEventImage(
               ctx.t('msg-submit-event-image-no-btn', { icon: ICONS.next }),
               'no_image',
             )
+            .row()
             .text(
               ctx.t('msg-conversation-cancelled-btn', { icon: ICONS.reject }),
               'cancel_conversation',

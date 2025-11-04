@@ -935,6 +935,8 @@ async function collectEventLinks(
                   }),
                   callback_data: 'no_links',
                 },
+              ],
+              [
                 {
                   text: ctx.t('msg-submit-event-btn-cancel', {
                     icon: ICONS.reject,
@@ -1023,6 +1025,8 @@ async function collectEventGroupLink(
                   }),
                   callback_data: 'no_group_link',
                 },
+              ],
+              [
                 {
                   text: ctx.t('msg-submit-event-btn-cancel', {
                     icon: ICONS.reject,
@@ -1090,6 +1094,8 @@ async function collectEventImage(
                   }),
                   callback_data: 'no_image',
                 },
+              ],
+              [
                 {
                   text: ctx.t('msg-submit-event-btn-cancel', {
                     icon: ICONS.reject,
@@ -1167,10 +1173,10 @@ async function askToSaveAsTemplate(
   try {
     // Create a unique key for this user's template save
     const userId = ctx.from?.id?.toString() || 'unknown';
-    
+
     // Store in global storage to bypass session persistence issues
     templateSaveStorage.set(userId, eventData);
-    
+
     await ctx.replyWithMarkdownV2(
       ctx.t('msg-save-as-template-prompt', { icon: ICONS.save }),
       {
