@@ -1,4 +1,4 @@
-import { InputFile } from 'grammy';
+import { InputFile, InlineKeyboard } from 'grammy';
 import { Readable } from 'stream';
 import { Event } from '@prisma/client';
 
@@ -16,7 +16,6 @@ import { MyContext } from '../types/context';
 import { ICONS } from '../utils/iconUtils';
 import { escapeMarkdownV2Text } from '../utils/markdownUtils';
 import { formatEvent } from '../utils/eventMessageFormatter';
-import { InlineKeyboard } from 'grammy';
 
 const disableLinkPreview = {
   is_disabled: true,
@@ -24,6 +23,12 @@ const disableLinkPreview = {
 
 // Telegram has a 1024 character limit for photo captions
 const MAX_CAPTION_LENGTH = 1024;
+
+interface SendPhotoOptions {
+  has_spoiler?: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  reply_markup?: any;
+}
 
 /**
  * Sends a photo with text. If text is too long for caption, sends photo and text separately.
@@ -37,7 +42,7 @@ async function sendPhotoWithText(
   chatId: string | number,
   imageBuffer: Buffer,
   messageText: string,
-  options: { has_spoiler?: boolean; reply_markup?: any } = {},
+  options: SendPhotoOptions = {},
 ): Promise<number> {
   const stream = Readable.from(imageBuffer);
   
