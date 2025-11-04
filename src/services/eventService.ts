@@ -22,6 +22,54 @@ const disableLinkPreview = {
   is_disabled: true,
 };
 
+// Telegram has a 1024 character limit for photo captions
+const MAX_CAPTION_LENGTH = 1024;
+
+/**
+ * Sends a photo with text. If text is too long for caption, sends photo and text separately.
+ * @param chatId - Chat ID or username to send to
+ * @param imageBuffer - Image buffer
+ * @param messageText - Text to send (as caption or separate message)
+ * @param options - Additional options (has_spoiler, reply_markup, etc.)
+ * @returns The message ID of the photo message
+ */
+async function sendPhotoWithText(
+  chatId: string | number,
+  imageBuffer: Buffer,
+  messageText: string,
+  options: { has_spoiler?: boolean; reply_markup?: any } = {},
+): Promise<number> {
+  const stream = Readable.from(imageBuffer);
+  
+  if (messageText.length <= MAX_CAPTION_LENGTH) {
+    // Caption is short enough, send with photo
+    const sentMessage = await bot.api.sendPhoto(
+      chatId,
+      new InputFile(stream),
+      {
+        caption: messageText,
+        parse_mode: 'MarkdownV2',
+        ...options,
+      },
+    );
+    return sentMessage.message_id;
+  } else {
+    // Caption too long, send photo without caption and text separately
+    const { reply_markup, ...photoOptions } = options;
+    const sentMessage = await bot.api.sendPhoto(
+      chatId,
+      new InputFile(stream),
+      photoOptions,
+    );
+    await bot.api.sendMessage(chatId, messageText, {
+      parse_mode: 'MarkdownV2',
+      link_preview_options: disableLinkPreview,
+      reply_markup,
+    });
+    return sentMessage.message_id;
+  }
+}
+
 export async function notifyAdminsOfEvent(
   ctx: MyContext,
   event: Event,
@@ -54,11 +102,8 @@ export async function notifyAdminsOfEvent(
 
     if (event.imageBase64) {
       const imageBuffer = Buffer.from(event.imageBase64, 'base64');
-      const stream = Readable.from(imageBuffer);
       try {
-        await bot.api.sendPhoto(getAdminChatId(), new InputFile(stream), {
-          caption: messageText,
-          parse_mode: 'MarkdownV2',
+        await sendPhotoWithText(getAdminChatId(), imageBuffer, messageText, {
           reply_markup: approveKeyboard,
         });
       } catch (error) {
@@ -112,11 +157,8 @@ export async function postAdminManagementMessage(
 
     if (event.imageBase64) {
       const imageBuffer = Buffer.from(event.imageBase64, 'base64');
-      const stream = Readable.from(imageBuffer);
       try {
-        await bot.api.sendPhoto(adminChatId, new InputFile(stream), {
-          caption: messageText,
-          parse_mode: 'MarkdownV2',
+        await sendPhotoWithText(adminChatId, imageBuffer, messageText, {
           reply_markup: adminKeyboard,
         });
         console.log(
@@ -349,22 +391,18 @@ export async function postEventToChannel(
 
     if (event.imageBase64) {
       const imageBuffer = Buffer.from(event.imageBase64, 'base64');
-      const stream = Readable.from(imageBuffer);
 
       try {
-        const sentMessage = await bot.api.sendPhoto(
+        const messageId = await sendPhotoWithText(
           getChannelUsername(),
-          new InputFile(stream),
-          {
-            caption: messageText,
-            parse_mode: 'MarkdownV2',
-          },
+          imageBuffer,
+          messageText,
         );
         console.log(
-          `Photo posted in the channel for Event ID=${event.id}, messageId=${sentMessage.message_id}`,
+          `Photo posted in the channel for Event ID=${event.id}, messageId=${messageId}`,
         );
         await updateEvent(event.id, {
-          messageId: BigInt(sentMessage.message_id),
+          messageId: BigInt(messageId),
         });
         await postAdminManagementMessage(ctx, event);
       } catch (error) {
@@ -417,7 +455,6 @@ export async function updateEventInChannel(
 
     if (event.imageBase64) {
       const imageBuffer = Buffer.from(event.imageBase64, 'base64');
-      const stream = Readable.from(imageBuffer);
 
       if (event.messageId) {
         try {
@@ -435,19 +472,16 @@ export async function updateEventInChannel(
       }
 
       try {
-        const sentMessage = await bot.api.sendPhoto(
+        const messageId = await sendPhotoWithText(
           getChannelUsername(),
-          new InputFile(stream),
-          {
-            caption: messageText,
-            parse_mode: 'MarkdownV2',
-          },
+          imageBuffer,
+          messageText,
         );
         console.log(
-          `Updated photo posted in the channel for Event ID=${event.id}, new messageId=${sentMessage.message_id}`,
+          `Updated photo posted in the channel for Event ID=${event.id}, new messageId=${messageId}`,
         );
         await updateEvent(event.id, {
-          messageId: BigInt(sentMessage.message_id),
+          messageId: BigInt(messageId),
         });
         const updatedEvent = await findEventById(event.id);
         if (updatedEvent) {
@@ -590,12 +624,29 @@ export async function sendSearchToUser(
         if (event.imageBase64) {
           const imageBuffer = Buffer.from(event.imageBase64, 'base64');
           const stream = Readable.from(imageBuffer);
+          
+          // Telegram has a 1024 character limit for photo captions
+          const maxCaptionLength = 1024;
+          
           try {
-            await bot.api.sendPhoto(chatId, new InputFile(stream), {
-              caption: message,
-              parse_mode: 'MarkdownV2',
-              has_spoiler: true,
-            });
+            if (message.length <= maxCaptionLength) {
+              // Caption is short enough, send with photo
+              await bot.api.sendPhoto(chatId, new InputFile(stream), {
+                caption: message,
+                parse_mode: 'MarkdownV2',
+                has_spoiler: true,
+              });
+            } else {
+              // Caption too long, send photo without caption and text separately
+              await bot.api.sendPhoto(chatId, new InputFile(stream), {
+                has_spoiler: true,
+              });
+              await bot.api.sendMessage(chatId, message, {
+                parse_mode: 'MarkdownV2',
+                link_preview_options: disableLinkPreview,
+              });
+            }
+            console.log(`Photo and message sent to user for Event ID=${event.id}`);
           } catch (error) {
             await ctx.reply(
               ctx.t('msg-service-search-photo-error', {
@@ -736,18 +787,13 @@ export async function handleEventPush(
 
     if (event.imageBase64) {
       const imageBuffer = Buffer.from(event.imageBase64, 'base64');
-      const stream = Readable.from(imageBuffer);
 
       try {
-        const sentMessage = await bot.api.sendPhoto(
+        newMessageId = await sendPhotoWithText(
           getChannelUsername(),
-          new InputFile(stream),
-          {
-            caption: messageText,
-            parse_mode: 'MarkdownV2',
-          },
+          imageBuffer,
+          messageText,
         );
-        newMessageId = sentMessage.message_id;
         console.log(
           `Pushed photo posted to channel: Event ID=${eventId}, new messageId=${newMessageId}`,
         );
@@ -838,11 +884,8 @@ async function postAdminPushNotification(
 
     if (event.imageBase64) {
       const imageBuffer = Buffer.from(event.imageBase64, 'base64');
-      const stream = Readable.from(imageBuffer);
       try {
-        await bot.api.sendPhoto(adminChatId, new InputFile(stream), {
-          caption: messageText,
-          parse_mode: 'MarkdownV2',
+        await sendPhotoWithText(adminChatId, imageBuffer, messageText, {
           reply_markup: adminKeyboard,
         });
         console.log(
