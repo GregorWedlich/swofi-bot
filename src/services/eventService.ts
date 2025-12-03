@@ -1,9 +1,15 @@
 import { InputFile, InlineKeyboard } from 'grammy';
 import { Readable } from 'stream';
+import * as fs from 'fs';
 import { Event } from '@prisma/client';
 
 import { bot } from '../bot';
-import { getAdminChatId, getChannelUsername, getPushMinAgeDays } from '../constants/constants';
+import {
+  getAdminChatId,
+  getChannelUsername,
+  getPushMinAgeDays,
+  getPlaceholderImagePath,
+} from '../constants/constants';
 import { publishEvent } from '../controllers/eventController';
 import {
   approveEvent,
@@ -15,63 +21,147 @@ import {
 import { MyContext } from '../types/context';
 import { ICONS } from '../utils/iconUtils';
 import { escapeMarkdownV2Text } from '../utils/markdownUtils';
-import { formatEvent } from '../utils/eventMessageFormatter';
+import {
+  formatEvent,
+  formatEventCaption,
+  formatEventDescription,
+} from '../utils/eventMessageFormatter';
+import { buildEventLinksKeyboard } from '../utils/keyboardUtils';
 
 const disableLinkPreview = {
   is_disabled: true,
 };
 
-// Telegram has a 1024 character limit for photo captions
-const MAX_CAPTION_LENGTH = 1024;
+// Cached placeholder image buffer
+let placeholderBuffer: Buffer | null = null;
 
-interface SendPhotoOptions {
-  has_spoiler?: boolean;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  reply_markup?: any;
+/**
+ * Lädt den Placeholder-Image-Buffer (wird gecached für Performance).
+ */
+function getPlaceholderBuffer(): Buffer {
+  if (!placeholderBuffer) {
+    placeholderBuffer = fs.readFileSync(getPlaceholderImagePath());
+  }
+  return placeholderBuffer;
+}
+
+interface SendEventResult {
+  photoMessageId: number;
+  descriptionMessageId: number;
+}
+
+interface SendEventOptions {
+  context: 'admin' | 'channel';
+  isEdit?: boolean;
+  isPush?: boolean;
+  adminKeyboard?: InlineKeyboard;
 }
 
 /**
- * Sends a photo with text. If text is too long for caption, sends photo and text separately.
- * @param chatId - Chat ID or username to send to
- * @param imageBuffer - Image buffer
- * @param messageText - Text to send (as caption or separate message)
- * @param options - Additional options (has_spoiler, reply_markup, etc.)
- * @returns The message ID of the photo message
+ * Sendet ein Event als zwei Nachrichten: Bild mit Caption + Beschreibung als Reply.
+ * Links werden als Inline-Buttons unter dem Bild angezeigt.
  */
-async function sendPhotoWithText(
+async function sendEventWithDescription(
+  ctx: MyContext,
   chatId: string | number,
-  imageBuffer: Buffer,
-  messageText: string,
-  options: SendPhotoOptions = {},
-): Promise<number> {
+  event: Event,
+  options: SendEventOptions,
+): Promise<SendEventResult> {
+  const { context, isEdit = false, isPush = false, adminKeyboard } = options;
+
+  // 1. Caption formatieren (ohne Beschreibung, ohne Links)
+  const caption = formatEventCaption(ctx, event, {
+    context,
+    isEdit,
+    isPush,
+  });
+
+  // 2. Link-Buttons erstellen
+  const linkKeyboard = buildEventLinksKeyboard(ctx, event);
+
+  // 3. Keyboard zusammenbauen (Links + optionale Admin-Buttons)
+  let finalKeyboard: InlineKeyboard | undefined;
+  if (linkKeyboard && adminKeyboard) {
+    // Link-Buttons in erster Reihe, Admin-Buttons in zweiter Reihe
+    finalKeyboard = linkKeyboard.row();
+    // Admin-Keyboard Buttons hinzufügen
+    const adminRows = adminKeyboard.inline_keyboard;
+    for (const row of adminRows) {
+      for (const button of row) {
+        if ('callback_data' in button && button.callback_data) {
+          finalKeyboard.text(button.text, button.callback_data);
+        }
+      }
+    }
+  } else if (linkKeyboard) {
+    finalKeyboard = linkKeyboard;
+  } else if (adminKeyboard) {
+    finalKeyboard = adminKeyboard;
+  }
+
+  // 4. Bild bestimmen (Event-Bild oder Placeholder)
+  const imageBuffer = event.imageBase64
+    ? Buffer.from(event.imageBase64, 'base64')
+    : getPlaceholderBuffer();
+
+  // 5. Bild mit Caption senden
   const stream = Readable.from(imageBuffer);
-  
-  if (messageText.length <= MAX_CAPTION_LENGTH) {
-    // Caption is short enough, send with photo
-    const sentMessage = await bot.api.sendPhoto(
-      chatId,
-      new InputFile(stream),
-      {
-        caption: messageText,
-        parse_mode: 'MarkdownV2',
-        ...options,
-      },
-    );
-    return sentMessage.message_id;
-  } else {
-    // Caption too long, send photo without caption and text separately
-    const { reply_markup, ...photoOptions } = options;
-    const sentMessage = await bot.api.sendPhoto(
-      chatId,
-      new InputFile(stream),
-      photoOptions,
-    );
-    await bot.api.sendMessage(chatId, messageText, {
+  const photoMessage = await bot.api.sendPhoto(chatId, new InputFile(stream), {
+    caption,
+    parse_mode: 'MarkdownV2',
+    reply_markup: finalKeyboard,
+  });
+
+  // 6. Beschreibung als Reply senden
+  const descriptionText = formatEventDescription(ctx, event);
+  let descMessageId = photoMessage.message_id;
+
+  if (descriptionText) {
+    const descMessage = await bot.api.sendMessage(chatId, descriptionText, {
       parse_mode: 'MarkdownV2',
+      reply_parameters: { message_id: photoMessage.message_id },
       link_preview_options: disableLinkPreview,
-      reply_markup,
     });
-    return sentMessage.message_id;
+    descMessageId = descMessage.message_id;
+  }
+
+  return {
+    photoMessageId: photoMessage.message_id,
+    descriptionMessageId: descMessageId,
+  };
+}
+
+/**
+ * Löscht beide Event-Nachrichten aus einem Chat (Bild + Beschreibung).
+ */
+async function deleteEventMessages(
+  chatId: string | number,
+  event: Event,
+): Promise<void> {
+  // Bild-Nachricht löschen
+  if (event.messageId) {
+    try {
+      await bot.api.deleteMessage(chatId, Number(event.messageId));
+      console.log(`Photo message deleted: ${event.messageId}`);
+    } catch (error) {
+      console.error(
+        `Error deleting photo message ${event.messageId}:`,
+        error,
+      );
+    }
+  }
+
+  // Beschreibungs-Nachricht löschen
+  if (event.descriptionMessageId) {
+    try {
+      await bot.api.deleteMessage(chatId, Number(event.descriptionMessageId));
+      console.log(`Description message deleted: ${event.descriptionMessageId}`);
+    } catch (error) {
+      console.error(
+        `Error deleting description message ${event.descriptionMessageId}:`,
+        error,
+      );
+    }
   }
 }
 
@@ -81,55 +171,28 @@ export async function notifyAdminsOfEvent(
   isEdit = false,
 ) {
   try {
-    const messageText = formatEvent(ctx, event, {
-      context: 'admin',
-      isEdit,
-    });
+    const approveKeyboard = new InlineKeyboard()
+      .text(
+        ctx.t('msg-service-event-approval', { icon: ICONS.approve }),
+        isEdit ? `approve_edit_${event.id}` : `approve_${event.id}`,
+      )
+      .text(
+        ctx.t('msg-service-event-rejection', { icon: ICONS.reject }),
+        isEdit ? `reject_edit_${event.id}` : `reject_${event.id}`,
+      );
 
-    const approveKeyboard = {
-      inline_keyboard: [
-        [
-          {
-            text: ctx.t('msg-service-event-approval', { icon: ICONS.approve }),
-            callback_data: isEdit
-              ? `approve_edit_${event.id}`
-              : `approve_${event.id}`,
-          },
-          {
-            text: ctx.t('msg-service-event-rejection', { icon: ICONS.reject }),
-            callback_data: isEdit
-              ? `reject_edit_${event.id}`
-              : `reject_${event.id}`,
-          },
-        ],
-      ],
-    };
-
-    if (event.imageBase64) {
-      const imageBuffer = Buffer.from(event.imageBase64, 'base64');
-      try {
-        await sendPhotoWithText(getAdminChatId(), imageBuffer, messageText, {
-          reply_markup: approveKeyboard,
-        });
-      } catch (error) {
-        console.error(
-          `Error sending photo to admins for Event ID=${event.id}:`,
-          error,
-        );
-      }
-    } else {
-      try {
-        await bot.api.sendMessage(getAdminChatId(), messageText, {
-          parse_mode: 'MarkdownV2',
-          reply_markup: approveKeyboard,
-          link_preview_options: disableLinkPreview,
-        });
-      } catch (error) {
-        console.error(
-          `Error sending message to admins for Event ID=${event.id}:`,
-          error,
-        );
-      }
+    try {
+      await sendEventWithDescription(ctx, getAdminChatId(), event, {
+        context: 'admin',
+        isEdit,
+        adminKeyboard: approveKeyboard,
+      });
+      console.log(`Admin notification sent for Event ID=${event.id}`);
+    } catch (error) {
+      console.error(
+        `Error sending admin notification for Event ID=${event.id}:`,
+        error,
+      );
     }
   } catch (error) {
     console.error(
@@ -147,7 +210,6 @@ export async function postAdminManagementMessage(
   event: Event,
 ): Promise<void> {
   try {
-    const messageText = formatEvent(ctx, event, { context: 'admin' });
     const adminKeyboard = new InlineKeyboard()
       .text(
         ctx.t('admin-btn-delete', { icon: ICONS.reject }),
@@ -158,39 +220,19 @@ export async function postAdminManagementMessage(
         `admin_ban_and_delete_${event.id}`,
       );
 
-    const adminChatId = getAdminChatId();
-
-    if (event.imageBase64) {
-      const imageBuffer = Buffer.from(event.imageBase64, 'base64');
-      try {
-        await sendPhotoWithText(adminChatId, imageBuffer, messageText, {
-          reply_markup: adminKeyboard,
-        });
-        console.log(
-          `Admin management message (photo) sent for Event ID=${event.id}`,
-        );
-      } catch (error) {
-        console.error(
-          `Error sending admin management photo for Event ID=${event.id}:`,
-          error,
-        );
-      }
-    } else {
-      try {
-        await bot.api.sendMessage(adminChatId, messageText, {
-          parse_mode: 'MarkdownV2',
-          reply_markup: adminKeyboard,
-          link_preview_options: disableLinkPreview,
-        });
-        console.log(
-          `Admin management message (text) sent for Event ID=${event.id}`,
-        );
-      } catch (error) {
-        console.error(
-          `Error sending admin management text for Event ID=${event.id}:`,
-          error,
-        );
-      }
+    try {
+      await sendEventWithDescription(ctx, getAdminChatId(), event, {
+        context: 'admin',
+        adminKeyboard,
+      });
+      console.log(
+        `Admin management message sent for Event ID=${event.id}`,
+      );
+    } catch (error) {
+      console.error(
+        `Error sending admin management message for Event ID=${event.id}:`,
+        error,
+      );
     }
   } catch (error) {
     console.error(
@@ -342,22 +384,8 @@ export async function handleEventDeletion(
       return false;
     }
 
-    if (event.messageId) {
-      try {
-        await bot.api.deleteMessage(
-          getChannelUsername(),
-          Number(event.messageId),
-        );
-        console.log(
-          `Message deleted from channel for Event ID=${eventId}, messageId=${event.messageId}`,
-        );
-      } catch (error) {
-        console.error(
-          `Error deleting message from channel for Event ID=${eventId}, messageId=${event.messageId}:`,
-          error,
-        );
-      }
-    }
+    // Beide Nachrichten aus dem Channel löschen
+    await deleteEventMessages(getChannelUsername(), event);
 
     await deleteEventById(eventId);
     console.log(`Event deleted from database: ID=${eventId}`);
@@ -390,56 +418,34 @@ export async function postEventToChannel(
 ): Promise<void> {
   try {
     console.log(`Poste neues Event in den Kanal: ID=${event.id}`);
-    const messageText = formatEvent(ctx, event, {
-      context: 'channel',
-    });
 
-    if (event.imageBase64) {
-      const imageBuffer = Buffer.from(event.imageBase64, 'base64');
+    try {
+      const result = await sendEventWithDescription(
+        ctx,
+        getChannelUsername(),
+        event,
+        { context: 'channel' },
+      );
 
-      try {
-        const messageId = await sendPhotoWithText(
-          getChannelUsername(),
-          imageBuffer,
-          messageText,
-        );
-        console.log(
-          `Photo posted in the channel for Event ID=${event.id}, messageId=${messageId}`,
-        );
-        await updateEvent(event.id, {
-          messageId: BigInt(messageId),
-        });
-        await postAdminManagementMessage(ctx, event);
-      } catch (error) {
-        console.error(
-          `Error posting the photo to the channel for Event ID=${event.id}:`,
-          error,
-        );
+      console.log(
+        `Event posted to channel: ID=${event.id}, photoMessageId=${result.photoMessageId}, descriptionMessageId=${result.descriptionMessageId}`,
+      );
+
+      await updateEvent(event.id, {
+        messageId: BigInt(result.photoMessageId),
+        descriptionMessageId: BigInt(result.descriptionMessageId),
+      });
+
+      // Hole aktualisiertes Event für Admin-Nachricht
+      const updatedEvent = await findEventById(event.id);
+      if (updatedEvent) {
+        await postAdminManagementMessage(ctx, updatedEvent);
       }
-    } else {
-      try {
-        const sentMessage = await bot.api.sendMessage(
-          getChannelUsername(),
-          messageText,
-          {
-            parse_mode: 'MarkdownV2',
-            link_preview_options: disableLinkPreview,
-          },
-        );
-        console.log(
-          `Message posted in the channel for Event ID=${event.id}, messageId=${sentMessage.message_id}`,
-        );
-        await updateEvent(event.id, {
-          messageId: BigInt(sentMessage.message_id),
-        });
-
-        await postAdminManagementMessage(ctx, event);
-      } catch (error) {
-        console.error(
-          `Error posting the message to the channel for Event ID=${event.id}:`,
-          error,
-        );
-      }
+    } catch (error) {
+      console.error(
+        `Error posting event to channel for Event ID=${event.id}:`,
+        error,
+      );
     }
   } catch (error) {
     console.error(
@@ -454,129 +460,36 @@ export async function updateEventInChannel(
   event: Event,
 ): Promise<void> {
   try {
-    const messageText = formatEvent(ctx, event, {
-      context: 'channel',
-    });
+    // Alte Nachrichten löschen (Bild + Beschreibung)
+    await deleteEventMessages(getChannelUsername(), event);
 
-    if (event.imageBase64) {
-      const imageBuffer = Buffer.from(event.imageBase64, 'base64');
+    // Neues Event posten
+    try {
+      const result = await sendEventWithDescription(
+        ctx,
+        getChannelUsername(),
+        event,
+        { context: 'channel', isEdit: true },
+      );
 
-      if (event.messageId) {
-        try {
-          await bot.api.deleteMessage(
-            getChannelUsername(),
-            Number(event.messageId),
-          );
-          console.log(`Old message deleted with ID: ${event.messageId}`);
-        } catch (error) {
-          console.error(
-            `Error deleting message with ID: ${event.messageId}`,
-            error,
-          );
-        }
+      console.log(
+        `Updated event posted to channel: ID=${event.id}, photoMessageId=${result.photoMessageId}, descriptionMessageId=${result.descriptionMessageId}`,
+      );
+
+      await updateEvent(event.id, {
+        messageId: BigInt(result.photoMessageId),
+        descriptionMessageId: BigInt(result.descriptionMessageId),
+      });
+
+      const updatedEvent = await findEventById(event.id);
+      if (updatedEvent) {
+        await postAdminManagementMessage(ctx, updatedEvent);
       }
-
-      try {
-        const messageId = await sendPhotoWithText(
-          getChannelUsername(),
-          imageBuffer,
-          messageText,
-        );
-        console.log(
-          `Updated photo posted in the channel for Event ID=${event.id}, new messageId=${messageId}`,
-        );
-        await updateEvent(event.id, {
-          messageId: BigInt(messageId),
-        });
-        const updatedEvent = await findEventById(event.id);
-        if (updatedEvent) {
-          await postAdminManagementMessage(ctx, updatedEvent);
-        }
-      } catch (error) {
-        console.error(
-          `Error posting the updated photo to the channel for Event ID=${event.id}:`,
-          error,
-        );
-      }
-    } else {
-      if (event.messageId) {
-        try {
-          await bot.api.editMessageText(
-            getChannelUsername(),
-            Number(event.messageId),
-            messageText,
-            {
-              parse_mode: 'MarkdownV2',
-              link_preview_options: disableLinkPreview,
-            },
-          );
-          console.log(`Message edited with ID: ${event.messageId}`);
-          const updatedEvent = await findEventById(event.id);
-          if (updatedEvent) {
-            await postAdminManagementMessage(ctx, updatedEvent);
-          }
-        } catch (error) {
-          console.error(
-            `Error editing message with ID: ${event.messageId}`,
-            error,
-          );
-
-          try {
-            const sentMessage = await bot.api.sendMessage(
-              getChannelUsername(),
-              messageText,
-              {
-                parse_mode: 'MarkdownV2',
-                link_preview_options: disableLinkPreview,
-              },
-            );
-            console.log(
-              `New message posted in the channel for Event ID=${event.id}, messageId=${sentMessage.message_id}`,
-            );
-            await updateEvent(event.id, {
-              messageId: BigInt(sentMessage.message_id),
-            });
-            const updatedEvent = await findEventById(event.id);
-            if (updatedEvent) {
-              await postAdminManagementMessage(ctx, updatedEvent);
-            }
-          } catch (sendError) {
-            console.error(
-              `Error sending the new message for Event ID=${event.id}:`,
-              sendError,
-            );
-          }
-        }
-      } else {
-        console.log(
-          `Posting new message in the channel for Event ID=${event.id}`,
-        );
-        try {
-          const sentMessage = await bot.api.sendMessage(
-            getChannelUsername(),
-            messageText,
-            {
-              parse_mode: 'MarkdownV2',
-              link_preview_options: disableLinkPreview,
-            },
-          );
-          console.log(
-            `New message posted in the channel for Event ID=${event.id}, messageId=${sentMessage.message_id}`,
-          );
-          await updateEvent(event.id, {
-            messageId: BigInt(sentMessage.message_id),
-          });
-          const updatedEvent = await findEventById(event.id);
-          if (updatedEvent) {
-            await postAdminManagementMessage(ctx, updatedEvent);
-          }
-        } catch (error) {
-          console.error(
-            `Error posting the new message in the channel for Event ID=${event.id}:`,
-            error,
-          );
-        }
-      }
+    } catch (error) {
+      console.error(
+        `Error posting updated event to channel for Event ID=${event.id}:`,
+        error,
+      );
     }
   } catch (error) {
     console.error(
@@ -714,8 +627,8 @@ export async function sendSearchToUser(
 /**
  * Handles pushing an event to reappear as the newest message in the channel.
  * Validates that the event meets all push criteria, then:
- * 1. Deletes the old channel message
- * 2. Posts a new message with the same content
+ * 1. Deletes the old channel messages
+ * 2. Posts new messages with the same content
  * 3. Updates pushedAt and pushedCount in database
  * 4. Sends admin notification with push indicator
  */
@@ -737,8 +650,9 @@ export async function handleEventPush(
     // Validate push criteria
     const now = new Date();
     const minAgeDays = getPushMinAgeDays();
-    const minAgeDate = new Date(now.getTime() - minAgeDays * 24 * 60 * 60 * 1000);
-
+    const minAgeDate = new Date(
+      now.getTime() - minAgeDays * 24 * 60 * 60 * 1000,
+    );
 
     // Check if already pushed
     if (event.pushedCount > 0) {
@@ -767,92 +681,51 @@ export async function handleEventPush(
       return false;
     }
 
-    // Delete old message from channel
-    if (event.messageId) {
-      try {
-        await bot.api.deleteMessage(
-          getChannelUsername(),
-          Number(event.messageId),
-        );
-        console.log(
-          `Old message deleted from channel for push: Event ID=${eventId}, messageId=${event.messageId}`,
-        );
-      } catch (error) {
-        console.error(
-          `Error deleting old message for push: Event ID=${eventId}, messageId=${event.messageId}:`,
-          error,
-        );
-      }
+    // Delete old messages from channel (Bild + Beschreibung)
+    await deleteEventMessages(getChannelUsername(), event);
+
+    // Post new messages to channel
+    try {
+      const result = await sendEventWithDescription(
+        ctx,
+        getChannelUsername(),
+        event,
+        { context: 'channel', isPush: true },
+      );
+
+      console.log(
+        `Pushed event posted to channel: ID=${eventId}, photoMessageId=${result.photoMessageId}, descriptionMessageId=${result.descriptionMessageId}`,
+      );
+
+      // Update event in database
+      const updatedEvent = await updateEvent(eventId, {
+        messageId: BigInt(result.photoMessageId),
+        descriptionMessageId: BigInt(result.descriptionMessageId),
+        pushedAt: now,
+        pushedCount: 1,
+      });
+
+      // Send admin notification with push indicator
+      await postAdminPushNotification(ctx, updatedEvent);
+
+      // Confirm to user
+      await ctx.replyWithMarkdownV2(
+        ctx.t('msg-service-event-pushed-success', {
+          icon: ICONS.approve,
+          eventTitle: escapeMarkdownV2Text(event.title),
+        }),
+        { link_preview_options: disableLinkPreview },
+      );
+
+      console.log(`Event pushed successfully: ID=${eventId}`);
+      return true;
+    } catch (error) {
+      console.error(
+        `Error posting pushed event to channel for Event ID=${eventId}:`,
+        error,
+      );
+      return false;
     }
-
-    // Post new message to channel
-    const messageText = formatEvent(ctx, event, { context: 'channel' });
-
-    let newMessageId: number | undefined;
-
-    if (event.imageBase64) {
-      const imageBuffer = Buffer.from(event.imageBase64, 'base64');
-
-      try {
-        newMessageId = await sendPhotoWithText(
-          getChannelUsername(),
-          imageBuffer,
-          messageText,
-        );
-        console.log(
-          `Pushed photo posted to channel: Event ID=${eventId}, new messageId=${newMessageId}`,
-        );
-      } catch (error) {
-        console.error(
-          `Error posting pushed photo to channel for Event ID=${eventId}:`,
-          error,
-        );
-        return false;
-      }
-    } else {
-      try {
-        const sentMessage = await bot.api.sendMessage(
-          getChannelUsername(),
-          messageText,
-          {
-            parse_mode: 'MarkdownV2',
-            link_preview_options: disableLinkPreview,
-          },
-        );
-        newMessageId = sentMessage.message_id;
-        console.log(
-          `Pushed message posted to channel: Event ID=${eventId}, new messageId=${newMessageId}`,
-        );
-      } catch (error) {
-        console.error(
-          `Error posting pushed message to channel for Event ID=${eventId}:`,
-          error,
-        );
-        return false;
-      }
-    }
-
-    // Update event in database
-    const updatedEvent = await updateEvent(eventId, {
-      messageId: newMessageId ? BigInt(newMessageId) : event.messageId,
-      pushedAt: now,
-      pushedCount: 1,
-    });
-
-    // Send admin notification with push indicator
-    await postAdminPushNotification(ctx, updatedEvent);
-
-    // Confirm to user
-    await ctx.replyWithMarkdownV2(
-      ctx.t('msg-service-event-pushed-success', {
-        icon: ICONS.approve,
-        eventTitle: escapeMarkdownV2Text(event.title),
-      }),
-      { link_preview_options: disableLinkPreview },
-    );
-
-    console.log(`Event pushed successfully: ID=${eventId}`);
-    return true;
   } catch (error) {
     console.error(`Error pushing event ID=${eventId}:`, error);
     await ctx.replyWithMarkdownV2(
@@ -871,10 +744,6 @@ async function postAdminPushNotification(
   event: Event,
 ): Promise<void> {
   try {
-    const pushIndicator =
-      ctx.t('msg-format-pushed-event-for-admin', { icon: '🔄' }) + '\n\n';
-    const messageText = pushIndicator + formatEvent(ctx, event, { context: 'admin' });
-    
     const adminKeyboard = new InlineKeyboard()
       .text(
         ctx.t('admin-btn-delete', { icon: ICONS.reject }),
@@ -885,39 +754,18 @@ async function postAdminPushNotification(
         `admin_ban_and_delete_${event.id}`,
       );
 
-    const adminChatId = getAdminChatId();
-
-    if (event.imageBase64) {
-      const imageBuffer = Buffer.from(event.imageBase64, 'base64');
-      try {
-        await sendPhotoWithText(adminChatId, imageBuffer, messageText, {
-          reply_markup: adminKeyboard,
-        });
-        console.log(
-          `Admin push notification (photo) sent for Event ID=${event.id}`,
-        );
-      } catch (error) {
-        console.error(
-          `Error sending admin push notification photo for Event ID=${event.id}:`,
-          error,
-        );
-      }
-    } else {
-      try {
-        await bot.api.sendMessage(adminChatId, messageText, {
-          parse_mode: 'MarkdownV2',
-          reply_markup: adminKeyboard,
-          link_preview_options: disableLinkPreview,
-        });
-        console.log(
-          `Admin push notification (text) sent for Event ID=${event.id}`,
-        );
-      } catch (error) {
-        console.error(
-          `Error sending admin push notification text for Event ID=${event.id}:`,
-          error,
-        );
-      }
+    try {
+      await sendEventWithDescription(ctx, getAdminChatId(), event, {
+        context: 'admin',
+        isPush: true,
+        adminKeyboard,
+      });
+      console.log(`Admin push notification sent for Event ID=${event.id}`);
+    } catch (error) {
+      console.error(
+        `Error sending admin push notification for Event ID=${event.id}:`,
+        error,
+      );
     }
   } catch (error) {
     console.error(

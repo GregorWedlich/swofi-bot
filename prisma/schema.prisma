@@ -33,6 +33,7 @@ model Event {
   status          EventStatus  @default(PENDING)
   rejectionReason String?
   messageId       BigInt?
+  descriptionMessageId BigInt?
   updatedCount    Int          @default(0)
   pushedAt        DateTime?
   pushedCount     Int          @default(0)
@@ -62,6 +63,7 @@ model EventArchive {
   status          EventStatus  @default(PENDING)
   rejectionReason String?
   messageId       BigInt?
+  descriptionMessageId BigInt?
   updatedCount    Int          @default(0)
   pushedAt        DateTime?
   pushedCount     Int          @default(0)

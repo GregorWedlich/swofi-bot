@@ -75,8 +75,8 @@ msg-reject-event-rejection-success = { $eventTitle } has been rejected and the r
 # /src/conversations/submitEventConversation.ts 
 msg-submit-event-title = { $icon } Please enter the *title* for the event:
 msg-submit-event-title-too-long = { $icon } The title may not exceed 80 characters\!
-msg-submit-event-description = { $icon } Please enter the *description* for the event \(max\. 405 characters\)
-msg-submit-event-description-too-long = { $icon } The description may not exceed 405 characters\!
+msg-submit-event-description = { $icon } Please enter the *description* for the event \(max\. 2048 characters\)
+msg-submit-event-description-too-long = { $icon } The description may not exceed 2048 characters\!
 msg-submit-event-location = { $icon } *Event Location* \(min\. 3 \- max\. 90 characters\):
 msg-submit-event-location-invalid = { $icon } The event location must be between 3 and 90 characters\!
 msg-submit-event-entry-date = { $icon } *Entry from* \(Format: { $date }\):
@@ -111,10 +111,9 @@ msg-submit-event-category-max-reached = { $icon } Maximum { $max } categories al
 msg-submit-event-category-empty = { $icon } Please select at least one category\!
 msg-submit-event-category-reset = { $icon } Category selection has been reset\. Please select again\.
 msg-submit-event-category-saved = { $icon } Categories saved\!
-msg-submit-event-links = { $iconPensil } Please enter max\. 1 link \(max\. 40 characters\)
-
-    { $iconTip } Tip: Use a URL shortener to shorten your link\. Recommendation: https://fckaf\.de
+msg-submit-event-links = { $icon } Would you like to add a link? \(optional\)
 msg-submit-event-link-too-long = { $icon } The link may not exceed 40 characters\!
+msg-submit-event-links-error = { $icon } Error processing the link\.
 msg-submit-event-image = { $icon } Please send an *image* for the event \(PNG or JPG\):
 msg-submit-event-image-invalid = { $icon } Invalid input\. Please send an image or skip this item\.
 msg-submit-event-image-error = { $icon } Error downloading the image\.
@@ -123,7 +122,7 @@ msg-submit-event-success-published = { $icon } Thank you\! Your event has been s
 msg-submit-event-links-no-btn = { $icon } Skip link entry
 msg-submit-event-image-no-btn = { $icon } Skip image upload
 msg-submit-event-btn-cancel = { $icon } Cancel
-msg-submit-event-group-link = { $icon } Would you like to add a group for your event?
+msg-submit-event-group-link = { $icon } Would you like to add another link? \(optional\)
 msg-submit-event-group-link-error = { $icon } The link must be a valid URL\.
 
 # /src/conversations/editEventConversation.ts
@@ -137,8 +136,8 @@ msg-edit-event-field-yes = { $icon } Yes
 msg-edit-event-field-no = { $icon } No
 msg-edit-event-new-title = Please enter a **new title** for the event \(max\. 85 characters\):
 msg-edit-event-new-title-too-long = { $icon } The title is too long\. Please enter a title with a maximum of 85 characters\.
-msg-edit-event-new-description = Please enter a *new description* for the event \(max\. 550 characters\):
-msg-edit-event-new-description-too-long = { $icon } The description is too long\. Please enter a description with a maximum of 405 characters\.
+msg-edit-event-new-description = Please enter a *new description* for the event \(max\. 2048 characters\):
+msg-edit-event-new-description-too-long = { $icon } The description is too long\. Please enter a description with a maximum of 2048 characters\.
 msg-edit-event-new-entry-date = New *entry time* \(format: { $date }\):
 msg-edit-event-wrong-date-format = { $icon } Incorrect date format\. Please enter the date in the format { $date }\.
 msg-edit-event-new-entry-date-future = { $icon } The entry date must be in the future\.
@@ -157,7 +156,7 @@ msg-edit-event-cat-count-deselection = { $deselection } removed!
 msg-edit-event-output-selected-cats = Selected categories: { $selectedCategories }
 msg-edit-event-cat-reset-btn = { $icon } Reset
 msg-edit-event-cat-done-btn = { $icon } Done
-msg-edit-event-new-links = Bitte gib max\. 1 Link an \(max\. 40 Zeichen\)
+msg-edit-event-new-links = { $icon } Please enter max\. 2 links:
 msg-edit-event-new-image = Please send a *new image* for the event \(PNG or JPG\):
 msg-edit-event-image-download-error = Error downloading the image\.
 msg-edit-event-image-invalid-input = Invalid input\. Please send an image.
@@ -352,6 +351,10 @@ bot-cmd-templates = Use template for event
 bot-cmd-delete = Delete an existing event
 bot-cmd-rules = Read our rules
 bot-cmd-support = Get support
+
+# Event Links Buttons
+btn-event-link-website = { $icon } Link 1
+btn-event-link-group = { $icon } Link 2
 
 # --- Push Event Feature ---
 bot-entry-event-push-command = Would you like to push one of your events?

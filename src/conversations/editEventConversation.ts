@@ -289,6 +289,10 @@ async function collectEventTitle(
 
       if (response.message?.text) {
         const newTitle = response.message.text;
+        // Commands ignorieren
+        if (newTitle.startsWith('/')) {
+          continue;
+        }
         console.log(`collectEventTitle: Received text: "${newTitle}"`); // Add log
         if (newTitle.length > 80) {
           console.log('collectEventTitle: Title too long'); // Add log
@@ -348,7 +352,11 @@ async function collectEventDescription(
       }
 
       if (response.message?.text) {
-        if (response.message.text.length > 405) {
+        // Commands ignorieren
+        if (response.message.text.startsWith('/')) {
+          continue;
+        }
+        if (response.message.text.length > 2048) {
           await ctx.replyWithMarkdownV2(
             ctx.t('msg-submit-event-description-too-long', {
               icon: ICONS.reject,
@@ -398,6 +406,10 @@ async function collectEventLocation(
       }
 
       if (response.message?.text) {
+        // Commands ignorieren
+        if (response.message.text.startsWith('/')) {
+          continue;
+        }
         const textLength = response.message.text.length;
         if (textLength < 3 || textLength > 90) {
           await ctx.replyWithMarkdownV2(
@@ -921,8 +933,7 @@ async function collectEventLinks(
     try {
       await ctx.replyWithMarkdownV2(
         ctx.t('msg-submit-event-links', {
-          iconPensil: ICONS.pensil,
-          iconTip: ICONS.tip,
+          icon: ICONS.links,
         }),
         {
           reply_markup: new InlineKeyboard()
@@ -952,13 +963,6 @@ async function collectEventLinks(
         eventData.links = [];
         return true;
       } else if (response.message?.text) {
-        if (response.message.text.length > 40) {
-          await ctx.replyWithMarkdownV2(
-            ctx.t('msg-submit-event-link-too-long', { icon: ICONS.reject }),
-            { link_preview_options: disableLinkPreview },
-          );
-          continue;
-        }
         const links = response.message.text.split(' ').slice(0, 1);
         eventData.links = links;
         return true;

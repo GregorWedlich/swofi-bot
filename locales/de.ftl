@@ -68,8 +68,8 @@ msg-reject-event-rejection-success = { $eventTitle } wurde abgelehnt und der Gru
 # /src/conversations/submitEventConversation.ts 
 msg-submit-event-title = { $icon } Bitte gib den *Titel* für die Veranstaltung ein \(max\. 80 Zeichen\):
 msg-submit-event-title-too-long = { $icon } Der Titel darf maximal 80 Zeichen lang sein\!
-msg-submit-event-description = { $icon } Bitte gib die *Beschreibung* der Veranstaltung ein \(max\. 405 Zeichen\)
-msg-submit-event-description-too-long = { $icon } Die Beschreibung darf maximal 405 Zeichen lang sein\!
+msg-submit-event-description = { $icon } Bitte gib die *Beschreibung* der Veranstaltung ein \(max\. 2048 Zeichen\)
+msg-submit-event-description-too-long = { $icon } Die Beschreibung darf maximal 2048 Zeichen lang sein\!
 msg-submit-event-location = { $icon } *Veranstaltungsort* \(min\. 3 \- max\. 90 Zeichen\):
 msg-submit-event-location-invalid = { $icon } Der Veranstaltungsort muss zwischen 3 und 90 Zeichen lang sein\!
 msg-submit-event-entry-date = { $icon } *Einlass ab* \(Format: { $date }\):
@@ -107,10 +107,12 @@ msg-submit-event-category-max-reached = { $icon } Maximal { $max } Kategorien er
 msg-submit-event-category-empty = { $icon } Bitte wähle mindestens eine Kategorie\!
 msg-submit-event-category-reset = { $icon } Kategorieauswahl wurde zurückgesetzt\. Bitte wähle erneut\.
 msg-submit-event-category-saved = { $icon } Kategorien gespeichert\!
-msg-submit-event-links = { $iconPensil } Bitte gib max\. 1 Link an \(max\. 40 Zeichen\)
-
-    { $iconTip } Tipp: Nutze einen URL\-Shortener um deinen Link zu kürzen\. Empfehlung: https://fckaf\.de
+msg-submit-event-links = { $icon } Möchtest du einen Link hinzufügen? \(optional\)
 msg-submit-event-link-too-long = { $icon } Der Link darf maximal 40 Zeichen lang sein\!
+msg-submit-event-links-error = { $icon } Fehler bei der Link\-Eingabe\.
+msg-submit-event-group-link = { $icon } Möchtest du einen weiteren Link hinzufügen? \(optional\)
+msg-submit-event-group-link-error = { $icon } Fehler beim Senden des Gruppenlinks\.
+msg-submit-event-save-error = { $icon } Fehler beim Speichern oder Veröffentlichen des Events\. Bitte versuche es erneut\.
 msg-submit-event-image = { $icon } Bitte sende ein *Bild* für die Veranstaltung \(PNG oder JPG\):
 msg-submit-event-image-invalid = { $icon } Ungültige Eingabe\. Bitte sende ein Bild oder überspringe den Punkt\.
 msg-submit-event-image-error = { $icon } Fehler beim Herunterladen des Bildes\.
@@ -119,10 +121,6 @@ msg-submit-event-success-published = { $icon } Danke\! Deine Veranstaltung wurde
 msg-submit-event-links-no-btn = { $icon } Linkeingabe überspringen
 msg-submit-event-image-no-btn = { $icon } Bild-Upload überspringen
 msg-submit-event-btn-cancel = { $icon } Abbrechen
-# Punkt am Ende für MarkdownV2 escaped
-msg-submit-event-group-link = { $icon } Möchtest du eine Telegram Gruppe für dein Event hinterlegen? Teile den Link deiner Gruppe hier\.
-msg-submit-event-group-link-error = { $icon } Fehler beim Senden des Gruppenlinks\.
-msg-submit-event-save-error = { $icon } Fehler beim Speichern oder Veröffentlichen des Events\. Bitte versuche es erneut\.
 
 # /src/conversations/editEventConversation.ts
 msg-edit-event-user-not-found = Benutzer nicht gefunden\.
@@ -135,8 +133,8 @@ msg-edit-event-field-yes = { $icon } Ja
 msg-edit-event-field-no = { $icon } Nein
 msg-edit-event-new-title = Bitte gib einen **neuen Titel** für die Veranstaltung ein \(max\. 85 Zeichen\):
 msg-edit-event-new-title-too-long = { $icon } Der Titel ist zu lang\. Bitte gib einen Titel mit maximal 85 Zeichen ein\.
-msg-edit-event-new-description = Bitte gib eine *neue Beschreibung* für die Veranstaltung ein \(max\. 550 Zeichen\):
-msg-edit-event-new-description-too-long = { $icon } Die Beschreibung ist zu lang\. Bitte gib eine Beschreibung mit maximal 405 Zeichen ein\.
+msg-edit-event-new-description = Bitte gib eine *neue Beschreibung* für die Veranstaltung ein \(max\. 2048 Zeichen\):
+msg-edit-event-new-description-too-long = { $icon } Die Beschreibung ist zu lang\. Bitte gib eine Beschreibung mit maximal 2048 Zeichen ein\.
 msg-edit-event-new-entry-date = Neue *Einlasszeit* \(Format: { $date }\):
 msg-edit-event-wrong-date-format = { $icon } Falsches Datumsformat\. Bitte gib das Datum im Format { $date } ein\.
 msg-edit-event-new-entry-date-future = { $icon } Das Einlassdatum muss in der Zukunft liegen\.
@@ -155,9 +153,7 @@ msg-edit-event-cat-count-deselection = { $deselection } entfernt\!
 msg-edit-event-output-selected-cats = Ausgewählte Kategorien: { $selectedCategories }
 msg-edit-event-cat-reset-btn = { $icon } Zurücksetzen
 msg-edit-event-cat-done-btn = { $icon } Fertig
-msg-edit-event-new-links = { $iconPensil } Bitte gib max\. 1 Link an \(max\. 40 Zeichen\)
-
-    { $iconTip } Tipp: Nutze einen URL\-Shortener um deinen Link zu kürzen\. Empfehlung: https://fckaf\.de
+msg-edit-event-new-links = { $icon } Bitte gib max\. 2 Links an:
 msg-edit-event-new-image = Bitte sende ein *neues Bild* für die Veranstaltung \(PNG oder JPG\):
 msg-edit-event-image-download-error = Fehler beim Herunterladen des Bildes\.
 msg-edit-event-image-invalid-input = Ungültige Eingabe\. Bitte sende ein Bild\.
@@ -441,3 +437,7 @@ bot-cmd-templates = Event Vorlagen
 bot-cmd-delete = Event löschen
 bot-cmd-rules = Regelwerk
 bot-cmd-support = Hilfe & Support
+
+# Event Links Buttons
+btn-event-link-website = { $icon } Link 1
+btn-event-link-group = { $icon } Link 2

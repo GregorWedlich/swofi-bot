@@ -4,8 +4,13 @@ import { Readable } from 'stream';
 import { Conversation } from '@grammyjs/conversations';
 
 import { MyContext } from '../types/context';
-import { formatEvent } from './eventMessageFormatter';
+import {
+  formatEvent,
+  formatEventCaption,
+  formatEventDescription,
+} from './eventMessageFormatter';
 import { ICONS } from './iconUtils';
+import { escapeMarkdownV2Text } from './markdownUtils';
 
 interface DisplayOptions {
   showEditOptions: boolean;
@@ -28,8 +33,15 @@ export async function displayEventSummaryWithOptions(
   eventData: Prisma.EventCreateInput | Partial<Event>,
   options: DisplayOptions = { showEditOptions: true },
 ): Promise<void> {
-  const messageText = formatEvent(ctx, eventData as Event, {
+  // Full text for text-only messages (without photo)
+  const fullMessageText = formatEvent(ctx, eventData as Event, {
     context: 'user',
+    isEdit: false,
+  });
+
+  // Short caption for photo messages (max 1024 chars - no description/links)
+  const captionText = formatEventCaption(ctx, eventData as Event, {
+    context: 'summary',
     isEdit: false,
   });
 
@@ -99,23 +111,73 @@ export async function displayEventSummaryWithOptions(
     try {
       const imageBuffer = Buffer.from(eventData.imageBase64, 'base64');
       const stream = Readable.from(imageBuffer);
+
+      // Send photo with short caption (no description/links)
       await ctx.replyWithPhoto(new InputFile(stream), {
-        caption: messageText,
-        reply_markup: keyboard,
+        caption: captionText,
+        parse_mode: 'MarkdownV2',
       });
+
+      // Build description text with links for the second message
+      const descriptionParts: string[] = [];
+
+      if (eventData.description) {
+        descriptionParts.push(formatEventDescription(ctx, eventData as Event));
+      }
+
+      if (eventData.links && (eventData.links as string[]).length > 0) {
+        const linksText = (eventData.links as string[])
+          .map((link: string) => escapeMarkdownV2Text(link))
+          .join('\n');
+        descriptionParts.push(
+          ctx.t('msg-format-event-links', {
+            icon: ICONS.links,
+            links: linksText,
+          }),
+        );
+      }
+
+      if (eventData.groupLink) {
+        descriptionParts.push(
+          ctx.t('msg-format-event-group-link', {
+            icon: ICONS.group,
+            groupLink: escapeMarkdownV2Text(eventData.groupLink),
+          }),
+        );
+      }
+
+      // Send description + buttons as separate message
+      if (descriptionParts.length > 0) {
+        await ctx.replyWithMarkdownV2(descriptionParts.join('\n\n'), {
+          reply_markup: keyboard,
+          link_preview_options: disableLinkPreview,
+        });
+      } else {
+        // No description/links, just send buttons
+        await ctx.replyWithMarkdownV2(
+          ctx.t('msg-summary-prompt', { icon: ICONS.tip }),
+          {
+            reply_markup: keyboard,
+            link_preview_options: disableLinkPreview,
+          },
+        );
+      }
     } catch (error) {
       console.error('Error sending photo in summary:', error);
       // Fallback to text message if photo fails
-      await ctx.replyWithMarkdownV2(messageText, {
+      await ctx.replyWithMarkdownV2(fullMessageText, {
         reply_markup: keyboard,
         link_preview_options: disableLinkPreview,
       });
-      await ctx.replyWithMarkdownV2(ctx.t('msg-summary-error-sending-image'), {
-        link_preview_options: disableLinkPreview,
-      });
+      await ctx.replyWithMarkdownV2(
+        ctx.t('msg-summary-error-sending-image', { icon: ICONS.reject }),
+        {
+          link_preview_options: disableLinkPreview,
+        },
+      );
     }
   } else {
-    await ctx.replyWithMarkdownV2(messageText, {
+    await ctx.replyWithMarkdownV2(fullMessageText, {
       reply_markup: keyboard,
       link_preview_options: disableLinkPreview,
     });

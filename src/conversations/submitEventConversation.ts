@@ -226,15 +226,19 @@ async function collectEventTitle(
   ctx: MyContext,
   eventData: Prisma.EventCreateInput,
 ): Promise<boolean> {
+  let promptShown = false;
   while (true) {
     try {
-      await ctx.replyWithMarkdownV2(
-        ctx.t('msg-submit-event-title', { icon: ICONS.event }),
-        {
-          reply_markup: createCancelKeyboard(ctx),
-          link_preview_options: disableLinkPreview,
-        },
-      );
+      if (!promptShown) {
+        await ctx.replyWithMarkdownV2(
+          ctx.t('msg-submit-event-title', { icon: ICONS.event }),
+          {
+            reply_markup: createCancelKeyboard(ctx),
+            link_preview_options: disableLinkPreview,
+          },
+        );
+        promptShown = true;
+      }
 
       const response = await conversation.wait();
 
@@ -247,10 +251,16 @@ async function collectEventTitle(
           });
           return false;
         }
+        // Nach Abbruch-Abfrage: Prompt erneut zeigen
+        promptShown = false;
         continue;
       }
 
       if (response.message?.text) {
+        // Commands ignorieren
+        if (response.message.text.startsWith('/')) {
+          continue;
+        }
         if (response.message.text.length > 80) {
           await ctx.replyWithMarkdownV2(
             ctx.t('msg-submit-event-title-too-long', {
@@ -265,6 +275,15 @@ async function collectEventTitle(
         eventData.title = response.message.text;
         return true;
       }
+      // Ungültige Eingabe (kein Text)
+      await ctx.replyWithMarkdownV2(
+        ctx.t('msg-submit-event-title-too-long', {
+          icon: ICONS.reject,
+        }),
+        {
+          link_preview_options: disableLinkPreview,
+        },
+      );
     } catch (error) {
       console.error('Error capturing the title:', error);
       await ctx.replyWithMarkdownV2(
@@ -282,15 +301,19 @@ async function collectEventDescription(
   ctx: MyContext,
   eventData: Prisma.EventCreateInput,
 ): Promise<boolean> {
+  let promptShown = false;
   while (true) {
     try {
-      await ctx.replyWithMarkdownV2(
-        ctx.t('msg-submit-event-description', { icon: ICONS.pensil }),
-        {
-          reply_markup: createCancelKeyboard(ctx),
-          link_preview_options: disableLinkPreview,
-        },
-      );
+      if (!promptShown) {
+        await ctx.replyWithMarkdownV2(
+          ctx.t('msg-submit-event-description', { icon: ICONS.pensil }),
+          {
+            reply_markup: createCancelKeyboard(ctx),
+            link_preview_options: disableLinkPreview,
+          },
+        );
+        promptShown = true;
+      }
 
       const response = await conversation.wait();
 
@@ -303,11 +326,18 @@ async function collectEventDescription(
           });
           return false;
         }
+        // Nach Abbruch-Abfrage: Prompt erneut zeigen
+        promptShown = false;
         continue;
       }
 
       if (response.message?.text) {
-        if (response.message.text.length > 405) {
+        const textLength = response.message.text.length;
+        // Commands ignorieren - diese sollten nicht als Beschreibung akzeptiert werden
+        if (response.message.text.startsWith('/')) {
+          continue;
+        }
+        if (textLength > 2048) {
           await ctx.replyWithMarkdownV2(
             ctx.t('msg-submit-event-description-too-long', {
               icon: ICONS.reject,
@@ -321,6 +351,15 @@ async function collectEventDescription(
         eventData.description = response.message.text;
         return true;
       }
+      // Ungültige Eingabe (kein Text)
+      await ctx.replyWithMarkdownV2(
+        ctx.t('msg-submit-event-description-too-long', {
+          icon: ICONS.reject,
+        }),
+        {
+          link_preview_options: disableLinkPreview,
+        },
+      );
     } catch (error) {
       console.error('Error capturing the description:', error);
       await ctx.replyWithMarkdownV2(
@@ -338,15 +377,19 @@ async function collectEventLocation(
   ctx: MyContext,
   eventData: Prisma.EventCreateInput,
 ) {
+  let promptShown = false;
   while (true) {
     try {
-      await ctx.replyWithMarkdownV2(
-        ctx.t('msg-submit-event-location', { icon: ICONS.pensil }),
-        {
-          reply_markup: createCancelKeyboard(ctx),
-          link_preview_options: disableLinkPreview,
-        },
-      );
+      if (!promptShown) {
+        await ctx.replyWithMarkdownV2(
+          ctx.t('msg-submit-event-location', { icon: ICONS.pensil }),
+          {
+            reply_markup: createCancelKeyboard(ctx),
+            link_preview_options: disableLinkPreview,
+          },
+        );
+        promptShown = true;
+      }
 
       const response = await conversation.wait();
 
@@ -359,10 +402,16 @@ async function collectEventLocation(
           });
           return false;
         }
+        // Nach Abbruch-Abfrage: Prompt erneut zeigen
+        promptShown = false;
         continue;
       }
 
       if (response.message?.text) {
+        // Commands ignorieren
+        if (response.message.text.startsWith('/')) {
+          continue;
+        }
         const textLength = response.message.text.length;
         if (textLength < 3 || textLength > 90) {
           await ctx.replyWithMarkdownV2(
@@ -378,6 +427,15 @@ async function collectEventLocation(
         eventData.location = response.message.text;
         return true;
       }
+      // Ungültige Eingabe (kein Text) - Fehlermeldung
+      await ctx.replyWithMarkdownV2(
+        ctx.t('msg-submit-event-location-invalid', {
+          icon: ICONS.reject,
+        }),
+        {
+          link_preview_options: disableLinkPreview,
+        },
+      );
     } catch (error) {
       console.error('Error capturing the location:', error);
       await ctx.replyWithMarkdownV2(
@@ -935,8 +993,7 @@ async function collectEventLinks(
     try {
       await ctx.replyWithMarkdownV2(
         ctx.t('msg-submit-event-links', {
-          iconPensil: ICONS.pensil,
-          iconTip: ICONS.tip,
+          icon: ICONS.links,
         }),
         {
           reply_markup: {
@@ -980,16 +1037,6 @@ async function collectEventLinks(
         eventData.links = [];
         return true;
       } else if (response.message?.text) {
-        if (response.message.text.length > 40) {
-          await ctx.replyWithMarkdownV2(
-            ctx.t('msg-submit-event-link-too-long', { icon: ICONS.reject }),
-            {
-              link_preview_options: disableLinkPreview,
-            },
-          );
-          continue;
-        }
-
         const linksText = response.message.text;
 
         if (linksText.toLowerCase() !== 'no') {
