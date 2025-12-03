@@ -1,3 +1,5 @@
+import * as path from 'path';
+
 export function getAdminChatId(): string {
   return process.env.ADMIN_CHAT_ID || '';
 }
@@ -74,4 +76,8 @@ export function getRules(): string | undefined {
 
 export function getPushMinAgeDays(): number {
   return parseInt(process.env.PUSH_MIN_AGE_DAYS || '7', 10);
+}
+
+export function getPlaceholderImagePath(): string {
+  return path.join(__dirname, '../../swofi.png');
 }

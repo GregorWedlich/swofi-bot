@@ -329,8 +329,7 @@ async function editEventLinks(
 ): Promise<boolean> {
   await ctx.replyWithMarkdownV2(
     ctx.t('msg-submit-event-links', {
-      iconPensil: ICONS.pensil,
-      iconTip: ICONS.tip,
+      icon: ICONS.links,
     }),
     {
       reply_markup: {

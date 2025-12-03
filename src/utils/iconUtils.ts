@@ -31,11 +31,12 @@ export const ICONS = {
   tip: '👆',
   next: '➡️',
   group: '👥',
-  email: '📧', // Oder ein anderes passendes Emoji
-  telegram: '➡️', // Oder ein anderes passendes Emoji
-  rules: '📜', // Oder ein anderes passendes Emoji
+  email: '📧',
+  telegram: '➡️',
+  rules: '📜',
   template: '📋',
   list: '📋',
   delete: '🗑️',
   calendar: '📅',
+  push: '🚀',
 };
