@@ -27,6 +27,7 @@ COPY --from=build /app/node_modules /app/node_modules
 COPY --from=build /app/dist /app/dist
 COPY --from=build /app/prisma /app/prisma
 COPY --from=build /app/locales /app/locales
+COPY --from=build /app/swofi.png /app/swofi.png
 
 ENV NODE_ENV=production
 CMD ["sh", "-c", "npx prisma migrate deploy && node ./dist/index.js"]
